@@ -1,4 +1,4 @@
-import type { ExamContent } from './types'
+ import type { ExamContent } from './types'
 
 // VUL exam content. Replace this temporary shared set with VUL-specific questions.
 export const vulContent: ExamContent = {
