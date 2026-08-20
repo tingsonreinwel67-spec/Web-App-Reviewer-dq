@@ -5,6 +5,10 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
+  FileText,
+  Plus,
+  Search,
+  Trash2,
   Check,
   ChevronLeft,
   Home,
@@ -12,6 +16,11 @@ import {
   Shuffle,
   Target,
   X,
+  Moon,
+  Sun,
+  User,
+  LogOut,
+  ChevronDown,
 } from "lucide-react";
 import {
   examLabels,
@@ -23,7 +32,13 @@ import {
 import { traditionalContent } from "@/lib/exams/traditional";
 import { vulContent } from "@/lib/exams/vul";
 
-type Screen = "dashboard" | "progress" | "flashcard" | "memorize" | "practice";
+type Screen =
+  | "dashboard"
+  | "progress"
+  | "library"
+  | "flashcard"
+  | "memorize"
+  | "practice";
 type ProgressState = Record<
   ExamType,
   Record<"flashcard" | "memorize" | "practice", number>
@@ -61,37 +76,224 @@ function Card({ children }: { children: React.ReactNode }) {
 function Header({
   home,
   progress,
+  theme,
+  toggleTheme,
 }: {
   home: () => void;
   progress: () => void;
+  theme: "dark" | "light";
+  toggleTheme: () => void;
 }) {
+  const [profileOpen, setProfileOpen] = useState(false);
   return (
-    <header className="flex items-center justify-between px-5 py-5">
-      <button
-        onClick={home}
-        className="flex items-center gap-2 font-mono text-sm font-bold"
-      >
+    <header className="relative z-20 flex items-center justify-between px-5 py-4">
+      <button onClick={home} className="flex items-center gap-2 font-mono text-sm font-bold">
         <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <BookOpen className="size-4" />
-        </span>{" "}
+        </span>
         REVIEWER
       </button>
-      <button
-        onClick={progress}
-        className="rounded-full p-2 text-muted-foreground hover:bg-muted"
-        aria-label="View progress"
-      >
-        <BarChart3 className="size-5" />
-      </button>
+      <div className="flex items-center gap-1">
+        <div className="relative">
+          <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1.5 hover:bg-muted" aria-expanded={profileOpen} aria-label="Open user menu">
+            <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-secondary-foreground"><User className="size-4" /></span>
+            <span className="hidden text-left text-xs font-semibold sm:block">Reinwel_Tingson</span>
+            <ChevronDown className="size-4 text-muted-foreground" />
+          </button>
+          {profileOpen && (
+            <div className="absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-border bg-popover p-2 shadow-xl">
+              <div className="border-b border-border px-3 py-3">
+                <p className="font-semibold">Reinwel_Tingson</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">tingsonreinwel67@gmail.com</p>
+              </div>
+              <button onClick={() => { setProfileOpen(false); progress(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm hover:bg-muted">
+                <BarChart3 className="size-4 text-primary" /> Progress
+              </button>
+              <button onClick={() => { toggleTheme(); setProfileOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm hover:bg-muted">
+                {theme === "dark" ? <Sun className="size-4 text-primary" /> : <Moon className="size-4 text-primary" />} {theme === "dark" ? "Light mode" : "Dark mode"}
+              </button>
+              <button onClick={() => setProfileOpen(false)} className="flex w-full items-center gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground hover:text-foreground">
+                <LogOut className="size-4" /> Log out
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </header>
+  );
+}
+function Library({ back }: { back: () => void }) {
+  const [term, setTerm] = useState("");
+  const [terms, setTerms] = useState<string[]>([]);
+  const [files, setFiles] = useState<{ name: string; size: string }[]>([]);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    const savedTerms = window.localStorage.getItem("reviewer-terms");
+    const savedFiles = window.localStorage.getItem("reviewer-files");
+    if (savedTerms) setTerms(JSON.parse(savedTerms));
+    if (savedFiles) setFiles(JSON.parse(savedFiles));
+  }, []);
+
+  const addTerm = () => {
+    const value = term.trim();
+    if (!value || terms.includes(value)) return;
+    const next = [...terms, value];
+    setTerms(next);
+    window.localStorage.setItem("reviewer-terms", JSON.stringify(next));
+    setTerm("");
+  };
+
+  const removeTerm = (value: string) => {
+    const next = terms.filter((item) => item !== value);
+    setTerms(next);
+    window.localStorage.setItem("reviewer-terms", JSON.stringify(next));
+  };
+
+  const addFiles = (selected: FileList | null) => {
+    if (!selected) return;
+    const next = [
+      ...files,
+      ...Array.from(selected).map((file) => ({
+        name: file.name,
+        size: `${Math.max(1, Math.round(file.size / 1024))} KB`,
+      })),
+    ];
+    setFiles(next);
+    window.localStorage.setItem("reviewer-files", JSON.stringify(next));
+  };
+
+  const visibleTerms = terms.filter((item) =>
+    item.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  return (
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-5 pb-10">
+      <button
+        onClick={back}
+        className="flex items-center gap-1 self-start text-sm text-muted-foreground"
+      >
+        <ChevronLeft className="size-4" /> Back
+      </button>
+      <div>
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          Content library
+        </p>
+        <h1 className="mt-2 text-3xl font-bold">Manage your reviewer</h1>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+          Add the common terms and reviewer manuals you want to use while studying.
+        </p>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-bold">Common terms</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Keep important vocabulary close at hand.
+              </p>
+            </div>
+            <BookOpen className="size-5 text-primary" />
+          </div>
+          <div className="mt-5 flex gap-2">
+            <input
+              value={term}
+              onChange={(event) => setTerm(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) addTerm();
+              }}
+              placeholder="e.g. insurable interest"
+              className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Common term"
+            />
+            <button
+              onClick={addTerm}
+              className="flex items-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-bold text-primary-foreground"
+            >
+              <Plus className="size-4" /> Add
+            </button>
+          </div>
+          <div className="mt-5 flex flex-col gap-2">
+            {terms.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search terms"
+                  className="w-full rounded-xl border border-input bg-background py-2.5 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  aria-label="Search terms"
+                />
+              </div>
+            )}
+            {visibleTerms.length === 0 ? (
+              <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">
+                No terms added yet. Start with the vocabulary you see most often.
+              </p>
+            ) : (
+              visibleTerms.map((item) => (
+                <div key={item} className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5 text-sm">
+                  <span>{item}</span>
+                  <button onClick={() => removeTerm(item)} aria-label={`Remove ${item}`} className="text-muted-foreground hover:text-foreground">
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-bold">Reviewer files</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Add manuals and reference material for your study library.
+              </p>
+            </div>
+            <FileText className="size-5 text-primary" />
+          </div>
+          <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/60 bg-primary/5 px-5 py-8 text-center hover:bg-primary/10">
+            <FileText className="size-7 text-primary" />
+            <span className="mt-3 text-sm font-semibold">Choose reviewer files</span>
+            <span className="mt-1 text-xs text-muted-foreground">PDF, DOC, DOCX, or TXT</span>
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.txt"
+              onChange={(event) => addFiles(event.target.files)}
+              className="sr-only"
+            />
+          </label>
+          <div className="mt-5 flex flex-col gap-2">
+            {files.length === 0 ? (
+              <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">
+                No files added yet. Your reviewer manuals will appear here.
+              </p>
+            ) : (
+              files.map((file, index) => (
+                <div key={`${file.name}-${index}`} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5">
+                  <FileText className="size-4 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">{file.size}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+    </main>
   );
 }
 function Dashboard({
   select,
   progress,
+  library,
 }: {
   select: (mode: StudyMode) => void;
   progress: ProgressState;
+  library: () => void;
 }) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-5 pb-10">
@@ -126,6 +328,21 @@ function Dashboard({
           })}
         </div>
       </Card>
+      <button
+        onClick={library}
+        className="flex items-center justify-between rounded-2xl border border-primary/50 bg-primary/10 p-4 text-left hover:bg-primary/15"
+      >
+        <span className="flex items-center gap-3">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <FileText className="size-4" />
+          </span>
+          <span>
+            <span className="block font-bold">Manage reviewer content</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">Add terms and manuals</span>
+          </span>
+        </span>
+        <ArrowRight className="size-4 text-primary" />
+      </button>
       <Card>
         <h2 className="mb-4 font-bold">Study modes</h2>
         <div className="flex flex-col gap-3">
@@ -491,13 +708,21 @@ function Progress({ back, data }: { back: () => void; data: ProgressState }) {
 }
 export default function Page() {
   const [screen, setScreen] = useState<Screen>("dashboard");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [mode, setMode] = useState<StudyMode | null>(null);
   const [type, setType] = useState<ExamType | null>(null);
   const [progress, setProgress] = useState<ProgressState>(initialProgress);
   useEffect(() => {
     const saved = window.localStorage.getItem("reviewer-progress");
     if (saved) setProgress(JSON.parse(saved));
+    const savedTheme = window.localStorage.getItem("reviewer-theme") as "dark" | "light" | null;
+    if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
   }, []);
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.toggle("light", theme === "light");
+    window.localStorage.setItem("reviewer-theme", theme);
+  }, [theme]);
   const update = (
     exam: ExamType,
     mode: "flashcard" | "memorize" | "practice",
@@ -535,6 +760,8 @@ export default function Page() {
     <div className="min-h-screen bg-background text-foreground">
       <Header
         home={home}
+        theme={theme}
+        toggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")}
         progress={() => {
           setMode(null);
           setType(null);
@@ -542,7 +769,11 @@ export default function Page() {
         }}
       />
       {screen === "dashboard" && !mode && (
-        <Dashboard select={select} progress={progress} />
+        <Dashboard
+          select={select}
+          progress={progress}
+          library={() => setScreen("library")}
+        />
       )}
       {screen === "dashboard" && mode && !type && (
         <Picker mode={mode} choose={choose} back={home} />
@@ -571,6 +802,7 @@ export default function Page() {
         />
       )}
       {screen === "progress" && <Progress back={home} data={progress} />}
+      {screen === "library" && <Library back={home} />}
       <footer className="mx-auto flex max-w-2xl justify-center px-5 pb-8">
         <button
           onClick={home}
