@@ -86,7 +86,7 @@ function Header({
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
   return (
-    <header className="relative z-20 flex items-center justify-between border-b border-border/70 px-5 py-4">
+    <header className="relative z-20 flex items-center justify-between px-5 py-4">
       <button onClick={home} className="flex items-center gap-2 font-mono text-sm font-bold">
         <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <BookOpen className="size-4" />
@@ -94,12 +94,6 @@ function Header({
         REVIEWER
       </button>
       <div className="flex items-center gap-1">
-        <button onClick={progress} className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="View progress">
-          <BarChart3 className="size-5" />
-        </button>
-        <button onClick={toggleTheme} className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
-          {theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />}
-        </button>
         <div className="relative">
           <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1.5 hover:bg-muted" aria-expanded={profileOpen} aria-label="Open user menu">
             <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-secondary-foreground"><User className="size-4" /></span>
