@@ -1,33 +1,81 @@
-# Web-App-Reviewer-dq
+# InsurePrep — Insurance Licensing Review
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+A full-stack exam reviewer app for insurance licensing candidates, covering two exam tracks:
 
-## Built with v0
+- **VUL** (Variable Universal Life)
+- **Traditional Life**
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+Built with Next.js (App Router), PostgreSQL, and Auth.js v5.
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_fU5mmDTwa4rEjkv8FO0j5Nyiesxp)
+## Features
+
+- **Flash Cards** — front/back recall-based study cards
+- **Memorization** — multiple-choice practice cards with instant feedback
+- **Vocabulary** — glossary of key terms per exam track
+- **Practice Exams** — timed, scored exam attempts with per-question review
+- **Progress Tracking** — per-track mastery percentages across flashcards, memorization, and practice questions
+- **Certificates** — issued after passing requirements are met
+
+## Tech Stack
+
+- **Framework:** Next.js (App Router)
+- **Database:** PostgreSQL, hosted on [Railway](https://railway.com)
+- **DB Client:** [`pg`](https://node-postgres.com/) (raw SQL, no ORM)
+- **Auth:** [Auth.js v5](https://authjs.dev/) — Credentials provider, JWT session strategy
+- **Styling:** Tailwind CSS
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+    npm install
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Set up environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local`:
 
-## Learn More
+    DATABASE_URL="postgresql://postgres:<password>@<host>:<port>/railway"
+    AUTH_SECRET="your-generated-secret"
 
-To learn more, take a look at the following resources:
+Generate an `AUTH_SECRET`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+    npx auth secret
+
+### 3. Run database migrations
+
+Migrations live in `src/migration/`. Apply them against your Railway Postgres instance using `psql`:
+
+    psql "$env:DATABASE_URL" -f src/migration/1.sql
+    psql "$env:DATABASE_URL" -f src/migration/2.sql
+    psql "$env:DATABASE_URL" -f src/migration/3.sql
+
+> On Windows, if `psql` isn't recognized, add it to your session PATH first:
+>
+>     $env:Path += ";C:\Program Files\PostgreSQL\18\bin"
+
+### 4. Run the development server
+
+    npm run dev
+
+Open [http://localhost:3000](http://localhost:3000) to view the app.
+
+## Project Structure
+
+    src/
+      app/
+        api/            → Next.js API routes (questions, flashcards, memorization, attempts, progress, auth)
+        ...              → frontend pages/components
+      lib/
+        db.ts            → shared Postgres connection pool
+        types/           → shared TypeScript types
+      migration/          → raw SQL migration files
+
+## Notes
+
+- No ORM — all queries are raw SQL via `pg`, with hand-written migrations.
+- Auth uses Auth.js v5 with a Credentials provider and JWT sessions (no separate session table).
+
+## Team
+
+- **Frontend:** Reinwel Tingson, Justin Jan Dalumpines
+- **Backend:** Nelson Lago III
