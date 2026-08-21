@@ -1,5 +1,5 @@
-import pool from "@/src/lib/db";
-import { Memorization } from "@/src/lib/types/memo";
+import pool from "@/lib/db";
+import { Memorization } from "@/lib/types/memo";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {

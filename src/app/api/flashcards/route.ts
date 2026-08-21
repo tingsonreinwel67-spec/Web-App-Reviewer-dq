@@ -1,5 +1,5 @@
-import pool from "@/src/lib/db";
-import { Flashcard } from "@/src/lib/types/flashcard";
+import pool from "@/lib/db";
+import { Flashcard } from "@/lib/types/flashcard";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {

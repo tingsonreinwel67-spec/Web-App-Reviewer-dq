@@ -1,4 +1,4 @@
-import pool from "@/src/lib/db";
+import pool from "@/lib/db";
 import { NextResponse } from "next/server";
 
 const PASSING_PERCENTAGE = 75;
