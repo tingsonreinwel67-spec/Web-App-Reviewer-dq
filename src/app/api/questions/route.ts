@@ -1,5 +1,5 @@
 import pool from "@/lib/db";
-import { Question } from "@/lib/exams/types";
+import type { Question } from "@/lib/types/questions";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
