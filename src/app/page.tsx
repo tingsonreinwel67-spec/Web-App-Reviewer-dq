@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BarChart3,
@@ -9,13 +9,10 @@ import {
   Plus,
   Search,
   Trash2,
-  Check,
   ChevronLeft,
-  Home,
   RotateCcw,
   Shuffle,
   Target,
-  X,
   Moon,
   Sun,
   User,
@@ -24,31 +21,32 @@ import {
 } from "lucide-react";
 import {
   examLabels,
-  modeLabels,
-  type ExamType,
-  type Question,
-  type StudyMode,
-} from "@/lib/exams/types";
-import { traditionalContent } from "@/lib/exams/traditional";
-import { vulContent } from "@/lib/exams/vul";
+  examTypes,
+} from "@/lib/types/common";
+import type { ExamType } from "@/lib/types/common";
+import type { Question } from "@/lib/types/questions";
+import { modeLabels, studyModes } from "@/lib/types/study";
+import type { StudyMode } from "@/lib/types/study";
 
-type Screen =
-  | "dashboard"
-  | "progress"
-  | "library"
-  | "flashcard"
-  | "memorize"
-  | "practice";
-type ProgressState = Record<
-  ExamType,
-  Record<"flashcard" | "memorize" | "practice", number>
->;
+type ProgressState = Record<ExamType, Record<StudyMode, number>>;
+
 const initialProgress: ProgressState = {
-  vul: { flashcard: 0, memorize: 0, practice: 0 },
-  traditional: { flashcard: 0, memorize: 0, practice: 0 },
+  VUL: { flashcard: 0, memorize: 0, practice: 0 },
+  TRADITIONAL_LIFE: { flashcard: 0, memorize: 0, practice: 0 },
 };
-const content = (type: ExamType) =>
-  type === "vul" ? vulContent : traditionalContent;
+
+const fetchExamQuestions = async (type: ExamType): Promise<Question[]> => {
+  const response = await fetch(
+    `/api/questions?exam_type=${encodeURIComponent(type)}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to load ${type} questions`);
+  }
+
+  return (await response.json()) as Question[];
+};
+
 const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
 function ProgressBar({
   value,
@@ -292,7 +290,7 @@ function Dashboard({
   library,
 }: {
   select: (mode: StudyMode) => void;
-  progress: ProgressState;
+  progress: typeof initialProgress;
   library: () => void;
 }) {
   return (
@@ -312,7 +310,7 @@ function Dashboard({
           <Target className="size-5 text-primary" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {(["vul", "traditional"] as ExamType[]).map((type, i) => {
+          {examTypes.map((type, i) => {
             const overall = Math.round(
               Object.values(progress[type]).reduce((a, b) => a + b, 0) / 3,
             );
@@ -346,8 +344,7 @@ function Dashboard({
       <Card>
         <h2 className="mb-4 font-bold">Study modes</h2>
         <div className="flex flex-col gap-3">
-          {(["flashcard", "memorize", "practice"] as StudyMode[]).map(
-            (mode) => (
+          {studyModes.map((mode) => (
               <button
                 key={mode}
                 onClick={() => select(mode)}
@@ -397,7 +394,7 @@ function Picker({
         </p>
         <h1 className="mt-2 text-3xl font-bold">What are you studying?</h1>
       </div>
-      {(["vul", "traditional"] as ExamType[]).map((type) => (
+      {examTypes.map((type) => (
         <button
           key={type}
           onClick={() => choose(type)}
@@ -418,23 +415,49 @@ function Study({
   back,
   update,
 }: {
-  mode: "flashcard" | "memorize";
+  mode: StudyMode;
   type: ExamType;
   back: () => void;
-  update: (mode: "flashcard" | "memorize", value: number) => void;
+  update: (mode: StudyMode, value: number) => void;
 }) {
-  const [questions, setQuestions] = useState<Question[]>(
-    () => content(type).questions,
-  );
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [wrong, setWrong] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchExamQuestions(type)
+      .then((items) => {
+        if (!active) return;
+        setQuestions(shuffled(items));
+        setIndex(0);
+        setRevealed(false);
+        setSelected(null);
+        setChecked(false);
+        setWrong([]);
+      })
+      .catch(() => {
+        if (!active) return;
+        setQuestions([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [type]);
+
   const question = questions[index];
-  const correct = question.answers.find((a) => a.correct)?.id;
+  const correct = question?.choices.find((choice) => choice.is_correct)?.id;
   const scramble = () => {
-    setQuestions(shuffled(content(type).questions));
+    setQuestions((current) => shuffled(current.length ? current : []));
     setIndex(0);
     setRevealed(false);
     setSelected(null);
@@ -442,6 +465,7 @@ function Study({
     setWrong([]);
   };
   const next = () => {
+    if (!question) return;
     if (mode === "flashcard" && !revealed) return;
     if (mode === "memorize" && !checked) return;
     if (index === questions.length - 1) {
@@ -464,13 +488,36 @@ function Study({
     setChecked(false);
   };
   const check = () => {
-    if (!selected) return;
+    if (!selected || !question || !correct) return;
     setChecked(true);
     if (selected !== correct && !wrong.some((q) => q.id === question.id))
       setWrong((items) => [...items, question]);
     else if (selected === correct)
       setWrong((items) => items.filter((q) => q.id !== question.id));
   };
+
+  if (loading) {
+    return (
+      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+        <Card>
+          <p className="text-sm text-muted-foreground">Loading questions...</p>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!question) {
+    return (
+      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+        <Card>
+          <p className="text-sm text-muted-foreground">
+            No questions are available for this exam right now.
+          </p>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-5 pb-10">
       <div className="flex items-center justify-between">
@@ -503,17 +550,17 @@ function Study({
       >
         <Card>
           <p className="font-mono text-xs uppercase text-primary">
-            {question.section}
+            {question.category}
           </p>
           <h1 className="mt-6 text-xl font-semibold leading-8">
-            {question.prompt}
+            {question.text}
           </h1>
           {mode === "flashcard" && (
             <div className="mt-8 rounded-2xl bg-muted p-4 text-sm leading-6">
               {revealed ? (
                 <>
                   <strong>Answer:</strong>{" "}
-                  {question.answers.find((a) => a.correct)?.text}
+                  {question.choices.find((choice) => choice.is_correct)?.text}
                   <p className="mt-2 text-muted-foreground">
                     {question.explanation}
                   </p>
@@ -527,20 +574,20 @@ function Study({
           )}
           {mode === "memorize" && (
             <div className="mt-6 flex flex-col gap-3">
-              {question.answers.map((answer, i) => (
+              {question.choices.map((choice, i) => (
                 <button
-                  key={answer.id}
+                  key={choice.id}
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setSelected(answer.id);
+                    setSelected(choice.id);
                   }}
-                  className={`rounded-2xl border p-4 text-left ${selected === answer.id ? "border-primary bg-primary/10" : "border-border"}`}
+                  className={`rounded-2xl border p-4 text-left ${selected === choice.id ? "border-primary bg-primary/10" : "border-border"}`}
                 >
                   <span className="mr-3 font-mono text-xs">
                     {String.fromCharCode(65 + i)}
                   </span>
-                  {answer.text}
+                  {choice.text}
                 </button>
               ))}
               {checked && (
@@ -582,18 +629,42 @@ function Practice({
 }: {
   type: ExamType;
   back: () => void;
-  update: (mode: "practice", value: number) => void;
+  update: (mode: StudyMode, value: number) => void;
 }) {
-  const [questions, setQuestions] = useState<Question[]>(
-    () => content(type).questions,
-  );
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Record<Question["id"], string>>({});
   const [finished, setFinished] = useState(false);
-  const score = questions.filter(
-    (q) => answers[q.id] === q.answers.find((a) => a.correct)?.id,
-  ).length;
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchExamQuestions(type)
+      .then((items) => {
+        if (!active) return;
+        setQuestions(shuffled(items));
+        setAnswers({});
+        setFinished(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setQuestions([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [type]);
+
+  const score = questions.filter((questionItem) => {
+    const correctId = questionItem.choices.find((choice) => choice.is_correct)?.id;
+    return answers[questionItem.id] === correctId;
+  }).length;
   const scramble = () => {
-    setQuestions(shuffled(content(type).questions));
+    setQuestions((current) => shuffled(current.length ? current : []));
     setAnswers({});
     setFinished(false);
   };
@@ -603,6 +674,16 @@ function Practice({
       setFinished(true);
     }
   };
+  if (loading) {
+    return (
+      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+        <Card>
+          <p className="text-sm text-muted-foreground">Loading practice questions...</p>
+        </Card>
+      </main>
+    );
+  }
+
   if (finished)
     return (
       <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10">
@@ -616,10 +697,10 @@ function Practice({
         </Card>
         {questions.map((q, i) => (
           <Card key={`${q.id}-${i}`}>
-            <h2 className="font-semibold">{q.prompt}</h2>
+            <h2 className="font-semibold">{q.text}</h2>
             <p className="mt-3 text-sm text-emerald-400">
               <strong>Correct answer:</strong>{" "}
-              {q.answers.find((a) => a.correct)?.text}
+              {q.choices.find((choice) => choice.is_correct)?.text}
             </p>
           </Card>
         ))}
@@ -648,18 +729,18 @@ function Practice({
       {questions.map((q, i) => (
         <Card key={`${q.id}-${i}`}>
           <p className="font-mono text-xs text-primary">Question {i + 1}</p>
-          <h2 className="mt-3 font-semibold leading-7">{q.prompt}</h2>
+          <h2 className="mt-3 font-semibold leading-7">{q.text}</h2>
           <div className="mt-4 flex flex-col gap-3">
-            {q.answers.map((a, j) => (
+            {q.choices.map((choice, j) => (
               <button
-                key={a.id}
-                onClick={() => setAnswers((v) => ({ ...v, [q.id]: a.id }))}
-                className={`rounded-2xl border p-4 text-left ${answers[q.id] === a.id ? "border-primary bg-primary/10" : "border-border"}`}
+                key={choice.id}
+                onClick={() => setAnswers((v) => ({ ...v, [q.id]: choice.id }))}
+                className={`rounded-2xl border p-4 text-left ${answers[q.id] === choice.id ? "border-primary bg-primary/10" : "border-border"}`}
               >
                 <span className="mr-3 font-mono text-xs">
                   {String.fromCharCode(65 + j)}
                 </span>
-                {a.text}
+                {choice.text}
               </button>
             ))}
           </div>
@@ -684,11 +765,11 @@ function Progress({ back, data }: { back: () => void; data: ProgressState }) {
         <ChevronLeft className="size-4" /> Back
       </button>
       <h1 className="text-3xl font-bold">My Progress</h1>
-      {(["vul", "traditional"] as ExamType[]).map((type) => (
+      {examTypes.map((type) => (
         <Card key={type}>
           <h2 className="text-xl font-bold">{examLabels[type]}</h2>
           <div className="mt-5 flex flex-col gap-4">
-            {(["flashcard", "memorize", "practice"] as const).map((mode) => (
+            {studyModes.map((mode) => (
               <div key={mode}>
                 <div className="mb-2 flex justify-between text-sm">
                   <span>{modeLabels[mode]}</span>
@@ -696,7 +777,7 @@ function Progress({ back, data }: { back: () => void; data: ProgressState }) {
                 </div>
                 <ProgressBar
                   value={data[type][mode]}
-                  blue={type === "traditional"}
+                  blue={type === "TRADITIONAL_LIFE"}
                 />
               </div>
             ))}
@@ -707,11 +788,13 @@ function Progress({ back, data }: { back: () => void; data: ProgressState }) {
   );
 }
 export default function Page() {
-  const [screen, setScreen] = useState<Screen>("dashboard");
+  const [screen, setScreen] = useState<
+    "dashboard" | "progress" | "library" | "flashcard" | "memorize" | "practice"
+  >("dashboard");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [mode, setMode] = useState<StudyMode | null>(null);
   const [type, setType] = useState<ExamType | null>(null);
-  const [progress, setProgress] = useState<ProgressState>(initialProgress);
+  const [progress, setProgress] = useState(initialProgress);
   useEffect(() => {
     const saved = window.localStorage.getItem("reviewer-progress");
     if (saved) setProgress(JSON.parse(saved));
@@ -725,7 +808,7 @@ export default function Page() {
   }, [theme]);
   const update = (
     exam: ExamType,
-    mode: "flashcard" | "memorize" | "practice",
+    mode: StudyMode,
     value: number,
   ) =>
     setProgress((p) => {
@@ -803,14 +886,6 @@ export default function Page() {
       )}
       {screen === "progress" && <Progress back={home} data={progress} />}
       {screen === "library" && <Library back={home} />}
-      <footer className="mx-auto flex max-w-2xl justify-center px-5 pb-8">
-        <button
-          onClick={home}
-          className="flex items-center gap-2 text-xs text-muted-foreground"
-        >
-          <Home className="size-3.5" /> Reviewer home
-        </button>
-      </footer>
     </div>
   );
 }

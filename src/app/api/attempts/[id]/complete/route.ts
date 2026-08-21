@@ -5,9 +5,9 @@ const PASSING_PERCENTAGE = 75;
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: attemptId } = params;
+  const { id: attemptId } = await params;
 
   try {
     const answersResult = await pool.query(
