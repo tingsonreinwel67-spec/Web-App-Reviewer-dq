@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  BarChart3,
   BookOpen,
   FileText,
   Plus,
@@ -13,11 +13,6 @@ import {
   RotateCcw,
   Shuffle,
   Target,
-  Moon,
-  Sun,
-  User,
-  LogOut,
-  ChevronDown,
 } from "lucide-react";
 import {
   examLabels,
@@ -27,6 +22,9 @@ import type { ExamType } from "@/lib/types/common";
 import type { Question } from "@/lib/types/questions";
 import { modeLabels, studyModes } from "@/lib/types/study";
 import type { StudyMode } from "@/lib/types/study";
+import { Header } from "@/components/ui/header";
+import { Options } from "@/components/ui/options";
+import { Result } from "@/components/ui/result";
 
 type ProgressState = Record<ExamType, Record<StudyMode, number>>;
 
@@ -69,55 +67,6 @@ function Card({ children }: { children: React.ReactNode }) {
     <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
       {children}
     </section>
-  );
-}
-function Header({
-  home,
-  progress,
-  theme,
-  toggleTheme,
-}: {
-  home: () => void;
-  progress: () => void;
-  theme: "dark" | "light";
-  toggleTheme: () => void;
-}) {
-  const [profileOpen, setProfileOpen] = useState(false);
-  return (
-    <header className="relative z-20 flex items-center justify-between px-5 py-4">
-      <button onClick={home} className="flex items-center gap-2 font-mono text-sm font-bold">
-        <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <BookOpen className="size-4" />
-        </span>
-        REVIEWER
-      </button>
-      <div className="flex items-center gap-1">
-        <div className="relative">
-          <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1.5 hover:bg-muted" aria-expanded={profileOpen} aria-label="Open user menu">
-            <span className="flex size-7 items-center justify-center rounded-full bg-secondary text-secondary-foreground"><User className="size-4" /></span>
-            <span className="hidden text-left text-xs font-semibold sm:block">Reinwel_Tingson</span>
-            <ChevronDown className="size-4 text-muted-foreground" />
-          </button>
-          {profileOpen && (
-            <div className="absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-border bg-popover p-2 shadow-xl">
-              <div className="border-b border-border px-3 py-3">
-                <p className="font-semibold">Reinwel_Tingson</p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">tingsonreinwel67@gmail.com</p>
-              </div>
-              <button onClick={() => { setProfileOpen(false); progress(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm hover:bg-muted">
-                <BarChart3 className="size-4 text-primary" /> Progress
-              </button>
-              <button onClick={() => { toggleTheme(); setProfileOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm hover:bg-muted">
-                {theme === "dark" ? <Sun className="size-4 text-primary" /> : <Moon className="size-4 text-primary" />} {theme === "dark" ? "Light mode" : "Dark mode"}
-              </button>
-              <button onClick={() => setProfileOpen(false)} className="flex w-full items-center gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground hover:text-foreground">
-                <LogOut className="size-4" /> Log out
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </header>
   );
 }
 function Library({ back }: { back: () => void }) {
@@ -371,54 +320,18 @@ function Dashboard({
     </main>
   );
 }
-function Picker({
-  mode,
-  choose,
-  back,
-}: {
-  mode: StudyMode;
-  choose: (type: ExamType) => void;
-  back: () => void;
-}) {
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-5 pb-10">
-      <button
-        onClick={back}
-        className="flex items-center gap-1 self-start text-sm text-muted-foreground"
-      >
-        <ChevronLeft className="size-4" /> Back
-      </button>
-      <div>
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {modeLabels[mode]}
-        </p>
-        <h1 className="mt-2 text-3xl font-bold">What are you studying?</h1>
-      </div>
-      {examTypes.map((type) => (
-        <button
-          key={type}
-          onClick={() => choose(type)}
-          className="rounded-3xl border border-border bg-card p-5 text-left shadow-sm hover:border-primary"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">{examLabels[type]}</h2>
-            <ArrowRight className="text-muted-foreground" />
-          </div>
-        </button>
-      ))}
-    </main>
-  );
-}
 function Study({
   mode,
   type,
   back,
   update,
+  complete,
 }: {
   mode: StudyMode;
   type: ExamType;
   back: () => void;
   update: (mode: StudyMode, value: number) => void;
+  complete: () => void;
 }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
@@ -475,11 +388,7 @@ function Study({
           ? 100
           : 100 - Math.round((wrong.length / questions.length) * 100),
       );
-      setIndex(0);
-      setRevealed(false);
-      setSelected(null);
-      setChecked(false);
-      setWrong([]);
+      complete();
       return;
     }
     setIndex(index + 1);
@@ -687,6 +596,7 @@ function Practice({
   if (finished)
     return (
       <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10">
+        <Result />
         <Card>
           <p className="font-mono text-xs uppercase text-primary">
             {examLabels[type]} · Results
@@ -788,8 +698,9 @@ function Progress({ back, data }: { back: () => void; data: ProgressState }) {
   );
 }
 export default function Page() {
+  const router = useRouter();
   const [screen, setScreen] = useState<
-    "dashboard" | "progress" | "library" | "flashcard" | "memorize" | "practice"
+    "dashboard" | "progress" | "library" | "flashcard" | "memorize" | "practice" | "result"
   >("dashboard");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [mode, setMode] = useState<StudyMode | null>(null);
@@ -830,14 +741,12 @@ export default function Page() {
     setScreen("dashboard");
   };
   const choose = (t: ExamType) => {
-    setType(t);
-    setScreen(
-      mode === "practice"
-        ? "practice"
-        : mode === "memorize"
-          ? "memorize"
-          : "flashcard",
-    );
+    const route = mode === "practice"
+      ? "practiceExam"
+      : mode === "memorize"
+        ? "memorization"
+        : "flashCard";
+    router.push(`/learningMethods/${route}?exam_type=${encodeURIComponent(t)}`);
   };
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -859,7 +768,7 @@ export default function Page() {
         />
       )}
       {screen === "dashboard" && mode && !type && (
-        <Picker mode={mode} choose={choose} back={home} />
+        <Options mode={mode} choose={choose} back={home} />
       )}
       {type && screen === "flashcard" && (
         <Study
@@ -867,6 +776,7 @@ export default function Page() {
           type={type}
           back={home}
           update={(m, v) => update(type, m, v)}
+          complete={() => setScreen("result")}
         />
       )}
       {type && screen === "memorize" && (
@@ -875,6 +785,7 @@ export default function Page() {
           type={type}
           back={home}
           update={(m, v) => update(type, m, v)}
+          complete={() => setScreen("result")}
         />
       )}
       {type && screen === "practice" && (
@@ -886,6 +797,7 @@ export default function Page() {
       )}
       {screen === "progress" && <Progress back={home} data={progress} />}
       {screen === "library" && <Library back={home} />}
+      {screen === "result" && <Result />}
     </div>
   );
 }
