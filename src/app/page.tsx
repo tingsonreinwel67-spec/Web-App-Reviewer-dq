@@ -6,12 +6,7 @@ import {
   ArrowRight,
   BookOpen,
   FileText,
-  Plus,
-  Search,
-  Trash2,
-  ChevronLeft,
   RotateCcw,
-  Shuffle,
   Target,
 } from "lucide-react";
 import {
@@ -19,218 +14,24 @@ import {
   examTypes,
 } from "@/lib/types/common";
 import type { ExamType } from "@/lib/types/common";
-import type { Question } from "@/lib/types/questions";
 import { modeLabels, studyModes } from "@/lib/types/study";
 import type { StudyMode } from "@/lib/types/study";
 import { Header } from "@/components/ui/header";
 import { Options } from "@/components/ui/options";
-import { Result } from "@/components/ui/result";
-
-type ProgressState = Record<ExamType, Record<StudyMode, number>>;
+import { Progress, ProgressBar } from "@/components/ui/progress";
+import type { ProgressState } from "@/components/ui/progress";
+import { Library } from "@/app/resources/library";
 
 const initialProgress: ProgressState = {
   VUL: { flashcard: 0, memorize: 0, practice: 0 },
   TRADITIONAL_LIFE: { flashcard: 0, memorize: 0, practice: 0 },
 };
 
-const fetchExamQuestions = async (type: ExamType): Promise<Question[]> => {
-  const response = await fetch(
-    `/api/questions?exam_type=${encodeURIComponent(type)}`,
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to load ${type} questions`);
-  }
-
-  return (await response.json()) as Question[];
-};
-
-const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
-function ProgressBar({
-  value,
-  blue = false,
-}: {
-  value: number;
-  blue?: boolean;
-}) {
-  return (
-    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-      <div
-        className={`h-full rounded-full ${blue ? "bg-primary" : "bg-emerald-500"}`}
-        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-      />
-    </div>
-  );
-}
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
       {children}
     </section>
-  );
-}
-function Library({ back }: { back: () => void }) {
-  const [term, setTerm] = useState("");
-  const [terms, setTerms] = useState<string[]>([]);
-  const [files, setFiles] = useState<{ name: string; size: string }[]>([]);
-  const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    const savedTerms = window.localStorage.getItem("reviewer-terms");
-    const savedFiles = window.localStorage.getItem("reviewer-files");
-    if (savedTerms) setTerms(JSON.parse(savedTerms));
-    if (savedFiles) setFiles(JSON.parse(savedFiles));
-  }, []);
-
-  const addTerm = () => {
-    const value = term.trim();
-    if (!value || terms.includes(value)) return;
-    const next = [...terms, value];
-    setTerms(next);
-    window.localStorage.setItem("reviewer-terms", JSON.stringify(next));
-    setTerm("");
-  };
-
-  const removeTerm = (value: string) => {
-    const next = terms.filter((item) => item !== value);
-    setTerms(next);
-    window.localStorage.setItem("reviewer-terms", JSON.stringify(next));
-  };
-
-  const addFiles = (selected: FileList | null) => {
-    if (!selected) return;
-    const next = [
-      ...files,
-      ...Array.from(selected).map((file) => ({
-        name: file.name,
-        size: `${Math.max(1, Math.round(file.size / 1024))} KB`,
-      })),
-    ];
-    setFiles(next);
-    window.localStorage.setItem("reviewer-files", JSON.stringify(next));
-  };
-
-  const visibleTerms = terms.filter((item) =>
-    item.toLowerCase().includes(query.toLowerCase()),
-  );
-
-  return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-5 pb-10">
-      <button
-        onClick={back}
-        className="flex items-center gap-1 self-start text-sm text-muted-foreground"
-      >
-        <ChevronLeft className="size-4" /> Back
-      </button>
-      <div>
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Content library
-        </p>
-        <h1 className="mt-2 text-3xl font-bold">Manage your reviewer</h1>
-        <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-          Add the common terms and reviewer manuals you want to use while studying.
-        </p>
-      </div>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="font-bold">Common terms</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Keep important vocabulary close at hand.
-              </p>
-            </div>
-            <BookOpen className="size-5 text-primary" />
-          </div>
-          <div className="mt-5 flex gap-2">
-            <input
-              value={term}
-              onChange={(event) => setTerm(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) addTerm();
-              }}
-              placeholder="e.g. insurable interest"
-              className="min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Common term"
-            />
-            <button
-              onClick={addTerm}
-              className="flex items-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-bold text-primary-foreground"
-            >
-              <Plus className="size-4" /> Add
-            </button>
-          </div>
-          <div className="mt-5 flex flex-col gap-2">
-            {terms.length > 0 && (
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search terms"
-                  className="w-full rounded-xl border border-input bg-background py-2.5 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  aria-label="Search terms"
-                />
-              </div>
-            )}
-            {visibleTerms.length === 0 ? (
-              <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">
-                No terms added yet. Start with the vocabulary you see most often.
-              </p>
-            ) : (
-              visibleTerms.map((item) => (
-                <div key={item} className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5 text-sm">
-                  <span>{item}</span>
-                  <button onClick={() => removeTerm(item)} aria-label={`Remove ${item}`} className="text-muted-foreground hover:text-foreground">
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-        <Card>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="font-bold">Reviewer files</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Add manuals and reference material for your study library.
-              </p>
-            </div>
-            <FileText className="size-5 text-primary" />
-          </div>
-          <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/60 bg-primary/5 px-5 py-8 text-center hover:bg-primary/10">
-            <FileText className="size-7 text-primary" />
-            <span className="mt-3 text-sm font-semibold">Choose reviewer files</span>
-            <span className="mt-1 text-xs text-muted-foreground">PDF, DOC, DOCX, or TXT</span>
-            <input
-              type="file"
-              multiple
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={(event) => addFiles(event.target.files)}
-              className="sr-only"
-            />
-          </label>
-          <div className="mt-5 flex flex-col gap-2">
-            {files.length === 0 ? (
-              <p className="rounded-xl bg-muted p-4 text-sm text-muted-foreground">
-                No files added yet. Your reviewer manuals will appear here.
-              </p>
-            ) : (
-              files.map((file, index) => (
-                <div key={`${file.name}-${index}`} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5">
-                  <FileText className="size-4 shrink-0 text-primary" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{file.size}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-      </div>
-    </main>
   );
 }
 function Dashboard({
@@ -320,391 +121,13 @@ function Dashboard({
     </main>
   );
 }
-function Study({
-  mode,
-  type,
-  back,
-  update,
-  complete,
-}: {
-  mode: StudyMode;
-  type: ExamType;
-  back: () => void;
-  update: (mode: StudyMode, value: number) => void;
-  complete: () => void;
-}) {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [index, setIndex] = useState(0);
-  const [revealed, setRevealed] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [checked, setChecked] = useState(false);
-  const [wrong, setWrong] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    fetchExamQuestions(type)
-      .then((items) => {
-        if (!active) return;
-        setQuestions(shuffled(items));
-        setIndex(0);
-        setRevealed(false);
-        setSelected(null);
-        setChecked(false);
-        setWrong([]);
-      })
-      .catch(() => {
-        if (!active) return;
-        setQuestions([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [type]);
-
-  const question = questions[index];
-  const correct = question?.choices.find((choice) => choice.is_correct)?.id;
-  const scramble = () => {
-    setQuestions((current) => shuffled(current.length ? current : []));
-    setIndex(0);
-    setRevealed(false);
-    setSelected(null);
-    setChecked(false);
-    setWrong([]);
-  };
-  const next = () => {
-    if (!question) return;
-    if (mode === "flashcard" && !revealed) return;
-    if (mode === "memorize" && !checked) return;
-    if (index === questions.length - 1) {
-      update(
-        mode,
-        mode === "flashcard"
-          ? 100
-          : 100 - Math.round((wrong.length / questions.length) * 100),
-      );
-      complete();
-      return;
-    }
-    setIndex(index + 1);
-    setRevealed(false);
-    setSelected(null);
-    setChecked(false);
-  };
-  const check = () => {
-    if (!selected || !question || !correct) return;
-    setChecked(true);
-    if (selected !== correct && !wrong.some((q) => q.id === question.id))
-      setWrong((items) => [...items, question]);
-    else if (selected === correct)
-      setWrong((items) => items.filter((q) => q.id !== question.id));
-  };
-
-  if (loading) {
-    return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
-        <Card>
-          <p className="text-sm text-muted-foreground">Loading questions...</p>
-        </Card>
-      </main>
-    );
-  }
-
-  if (!question) {
-    return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
-        <Card>
-          <p className="text-sm text-muted-foreground">
-            No questions are available for this exam right now.
-          </p>
-        </Card>
-      </main>
-    );
-  }
-
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-5 pb-10">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={back}
-          className="flex items-center gap-1 text-sm text-muted-foreground"
-        >
-          <ChevronLeft className="size-4" /> Back
-        </button>
-        <button
-          onClick={scramble}
-          className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
-        >
-          <Shuffle className="size-3.5" /> Scramble
-        </button>
-      </div>
-      <div className="flex justify-between">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {examLabels[type]} · {modeLabels[mode]}
-        </p>
-        <span className="text-xs text-muted-foreground">
-          {index + 1} / {questions.length}
-        </span>
-      </div>
-      <ProgressBar value={((index + 1) / questions.length) * 100} />
-      <button
-        type="button"
-        onClick={() => mode === "flashcard" && setRevealed(!revealed)}
-        className="text-left"
-      >
-        <Card>
-          <p className="font-mono text-xs uppercase text-primary">
-            {question.category}
-          </p>
-          <h1 className="mt-6 text-xl font-semibold leading-8">
-            {question.text}
-          </h1>
-          {mode === "flashcard" && (
-            <div className="mt-8 rounded-2xl bg-muted p-4 text-sm leading-6">
-              {revealed ? (
-                <>
-                  <strong>Answer:</strong>{" "}
-                  {question.choices.find((choice) => choice.is_correct)?.text}
-                  <p className="mt-2 text-muted-foreground">
-                    {question.explanation}
-                  </p>
-                </>
-              ) : (
-                <span className="text-muted-foreground">
-                  Tap to reveal the answer.
-                </span>
-              )}
-            </div>
-          )}
-          {mode === "memorize" && (
-            <div className="mt-6 flex flex-col gap-3">
-              {question.choices.map((choice, i) => (
-                <button
-                  key={choice.id}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelected(choice.id);
-                  }}
-                  className={`rounded-2xl border p-4 text-left ${selected === choice.id ? "border-primary bg-primary/10" : "border-border"}`}
-                >
-                  <span className="mr-3 font-mono text-xs">
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  {choice.text}
-                </button>
-              ))}
-              {checked && (
-                <p
-                  className={`text-sm font-semibold ${selected === correct ? "text-emerald-400" : "text-rose-400"}`}
-                >
-                  {selected === correct
-                    ? "Correct"
-                    : "Incorrect — keep this question in your retry queue."}
-                </p>
-              )}
-            </div>
-          )}
-        </Card>
-      </button>
-      {mode === "memorize" && (
-        <button
-          onClick={check}
-          className="rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground"
-        >
-          Check answer
-        </button>
-      )}
-      <button
-        onClick={next}
-        className="rounded-xl border border-border px-5 py-3 font-bold"
-      >
-        {index === questions.length - 1
-          ? "Complete and restart"
-          : "Next question"}
-      </button>
-    </main>
-  );
-}
-function Practice({
-  type,
-  back,
-  update,
-}: {
-  type: ExamType;
-  back: () => void;
-  update: (mode: StudyMode, value: number) => void;
-}) {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<Question["id"], string>>({});
-  const [finished, setFinished] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    fetchExamQuestions(type)
-      .then((items) => {
-        if (!active) return;
-        setQuestions(shuffled(items));
-        setAnswers({});
-        setFinished(false);
-      })
-      .catch(() => {
-        if (!active) return;
-        setQuestions([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [type]);
-
-  const score = questions.filter((questionItem) => {
-    const correctId = questionItem.choices.find((choice) => choice.is_correct)?.id;
-    return answers[questionItem.id] === correctId;
-  }).length;
-  const scramble = () => {
-    setQuestions((current) => shuffled(current.length ? current : []));
-    setAnswers({});
-    setFinished(false);
-  };
-  const submit = () => {
-    if (questions.every((q) => answers[q.id])) {
-      update("practice", Math.round((score / questions.length) * 100));
-      setFinished(true);
-    }
-  };
-  if (loading) {
-    return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
-        <Card>
-          <p className="text-sm text-muted-foreground">Loading practice questions...</p>
-        </Card>
-      </main>
-    );
-  }
-
-  if (finished)
-    return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10">
-        <Result />
-        <Card>
-          <p className="font-mono text-xs uppercase text-primary">
-            {examLabels[type]} · Results
-          </p>
-          <h1 className="mt-3 text-3xl font-bold">
-            {score} / {questions.length} correct
-          </h1>
-        </Card>
-        {questions.map((q, i) => (
-          <Card key={`${q.id}-${i}`}>
-            <h2 className="font-semibold">{q.text}</h2>
-            <p className="mt-3 text-sm text-emerald-400">
-              <strong>Correct answer:</strong>{" "}
-              {q.choices.find((choice) => choice.is_correct)?.text}
-            </p>
-          </Card>
-        ))}
-        <button
-          onClick={scramble}
-          className="rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground"
-        >
-          Scramble and try again
-        </button>
-      </main>
-    );
-  return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10">
-      <div className="flex items-center justify-between">
-        <button onClick={back} className="text-sm text-muted-foreground">
-          Back
-        </button>
-        <button
-          onClick={scramble}
-          className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
-        >
-          <Shuffle className="size-3.5" /> Scramble
-        </button>
-      </div>
-      <h1 className="text-3xl font-bold">{examLabels[type]} Practice Exam</h1>
-      {questions.map((q, i) => (
-        <Card key={`${q.id}-${i}`}>
-          <p className="font-mono text-xs text-primary">Question {i + 1}</p>
-          <h2 className="mt-3 font-semibold leading-7">{q.text}</h2>
-          <div className="mt-4 flex flex-col gap-3">
-            {q.choices.map((choice, j) => (
-              <button
-                key={choice.id}
-                onClick={() => setAnswers((v) => ({ ...v, [q.id]: choice.id }))}
-                className={`rounded-2xl border p-4 text-left ${answers[q.id] === choice.id ? "border-primary bg-primary/10" : "border-border"}`}
-              >
-                <span className="mr-3 font-mono text-xs">
-                  {String.fromCharCode(65 + j)}
-                </span>
-                {choice.text}
-              </button>
-            ))}
-          </div>
-        </Card>
-      ))}
-      <button
-        onClick={submit}
-        className="sticky bottom-4 rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground"
-      >
-        Done — Finish Exam
-      </button>
-    </main>
-  );
-}
-function Progress({ back, data }: { back: () => void; data: ProgressState }) {
-  return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10">
-      <button
-        onClick={back}
-        className="flex items-center gap-1 text-sm text-muted-foreground"
-      >
-        <ChevronLeft className="size-4" /> Back
-      </button>
-      <h1 className="text-3xl font-bold">My Progress</h1>
-      {examTypes.map((type) => (
-        <Card key={type}>
-          <h2 className="text-xl font-bold">{examLabels[type]}</h2>
-          <div className="mt-5 flex flex-col gap-4">
-            {studyModes.map((mode) => (
-              <div key={mode}>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span>{modeLabels[mode]}</span>
-                  <strong>{data[type][mode]}%</strong>
-                </div>
-                <ProgressBar
-                  value={data[type][mode]}
-                  blue={type === "TRADITIONAL_LIFE"}
-                />
-              </div>
-            ))}
-          </div>
-        </Card>
-      ))}
-    </main>
-  );
-}
 export default function Page() {
   const router = useRouter();
-  const [screen, setScreen] = useState<
-    "dashboard" | "progress" | "library" | "flashcard" | "memorize" | "practice" | "result"
-  >("dashboard");
+  const [screen, setScreen] = useState<"dashboard" | "progress" | "library">(
+    "dashboard",
+  );
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [mode, setMode] = useState<StudyMode | null>(null);
-  const [type, setType] = useState<ExamType | null>(null);
   const [progress, setProgress] = useState(initialProgress);
   useEffect(() => {
     const saved = window.localStorage.getItem("reviewer-progress");
@@ -717,27 +140,12 @@ export default function Page() {
     document.documentElement.classList.toggle("light", theme === "light");
     window.localStorage.setItem("reviewer-theme", theme);
   }, [theme]);
-  const update = (
-    exam: ExamType,
-    mode: StudyMode,
-    value: number,
-  ) =>
-    setProgress((p) => {
-      const next = {
-        ...p,
-        [exam]: { ...p[exam], [mode]: Math.max(p[exam][mode], value) },
-      };
-      window.localStorage.setItem("reviewer-progress", JSON.stringify(next));
-      return next;
-    });
   const home = () => {
     setMode(null);
-    setType(null);
     setScreen("dashboard");
   };
   const select = (m: StudyMode) => {
     setMode(m);
-    setType(null);
     setScreen("dashboard");
   };
   const choose = (t: ExamType) => {
@@ -756,7 +164,6 @@ export default function Page() {
         toggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")}
         progress={() => {
           setMode(null);
-          setType(null);
           setScreen("progress");
         }}
       />
@@ -767,37 +174,11 @@ export default function Page() {
           library={() => setScreen("library")}
         />
       )}
-      {screen === "dashboard" && mode && !type && (
+      {screen === "dashboard" && mode && (
         <Options mode={mode} choose={choose} back={home} />
-      )}
-      {type && screen === "flashcard" && (
-        <Study
-          mode="flashcard"
-          type={type}
-          back={home}
-          update={(m, v) => update(type, m, v)}
-          complete={() => setScreen("result")}
-        />
-      )}
-      {type && screen === "memorize" && (
-        <Study
-          mode="memorize"
-          type={type}
-          back={home}
-          update={(m, v) => update(type, m, v)}
-          complete={() => setScreen("result")}
-        />
-      )}
-      {type && screen === "practice" && (
-        <Practice
-          type={type}
-          back={home}
-          update={(m, v) => update(type, m, v)}
-        />
       )}
       {screen === "progress" && <Progress back={home} data={progress} />}
       {screen === "library" && <Library back={home} />}
-      {screen === "result" && <Result />}
     </div>
   );
 }
