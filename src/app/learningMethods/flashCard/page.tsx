@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, Shuffle, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Question } from "@/lib/types/questions";
 import { Result } from "@/components/ui/result";
+
+export const dynamic = "force-dynamic";
 
 const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
 
@@ -28,7 +30,7 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function FlashCardPage() {
+function FlashCardContent() {
   const searchParams = useSearchParams();
   const type: ExamType =
     searchParams.get("exam_type") === "TRADITIONAL_LIFE"
@@ -277,6 +279,24 @@ export default function FlashCardPage() {
           Previous card
         </button>
       </div>
+    </main>
+  );
+}
+
+export default function FlashCardPage() {
+  return (
+    <Suspense fallback={<FlashCardLoading />}>
+      <FlashCardContent />
+    </Suspense>
+  );
+}
+
+function FlashCardLoading() {
+  return (
+    <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+      <Card>
+        <p className="text-sm text-muted-foreground">Loading questions...</p>
+      </Card>
     </main>
   );
 }

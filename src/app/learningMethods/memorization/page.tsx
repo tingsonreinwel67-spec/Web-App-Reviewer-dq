@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { ChevronLeft, Shuffle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { examLabels, type ExamType } from "@/lib/types/common";
@@ -32,7 +32,7 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function MemorizationPage() {
+function MemorizationContent() {
   const searchParams = useSearchParams();
   const type: ExamType =
     searchParams.get("exam_type") === "TRADITIONAL_LIFE"
@@ -253,6 +253,24 @@ export default function MemorizationPage() {
             </p>
           )}
         </div>
+      </Card>
+    </main>
+  );
+}
+
+export default function MemorizationPage() {
+  return (
+    <Suspense fallback={<MemorizationLoading />}>
+      <MemorizationContent />
+    </Suspense>
+  );
+}
+
+function MemorizationLoading() {
+  return (
+    <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+      <Card>
+        <p className="text-sm text-muted-foreground">Loading questions...</p>
       </Card>
     </main>
   );
