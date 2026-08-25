@@ -48,3 +48,10 @@ export interface Certificate {
   issued_at: string;
   certificate_no: string;
 }
+
+export interface ResultProps {
+  correct?: number;
+  wrong?: number;
+  onTryAgain?: () => void;
+  onRedoMistakes?: () => void;
+}
