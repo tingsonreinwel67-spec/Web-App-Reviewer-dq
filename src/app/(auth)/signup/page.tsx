@@ -2,6 +2,8 @@
 
 import {
   ArrowRight,
+  Eye,
+  EyeOff,
   LoaderCircle,
   LockKeyhole,
   Mail,
@@ -15,10 +17,13 @@ import { FormEvent, useState } from "react";
 export default function SignupPage() {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setSuccess("");
     setIsSubmitting(true);
     const formData = new FormData(event.currentTarget);
     const payload = {
@@ -45,12 +50,17 @@ export default function SignupPage() {
       redirect: false,
     });
     setIsSubmitting(false);
+
     if (signInResult?.error) {
-      setError("Account created. Please log in to continue.");
+      setError("Signup succeeded, but automatic login failed. Please log in manually.");
       return;
     }
-    router.replace("/dashboard");
-    router.refresh();
+
+    setSuccess("Account created successfully! Redirecting to your dashboard...");
+    setTimeout(() => {
+      router.replace("/dashboard");
+      router.refresh();
+    }, 1000);
   }
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#061927] px-4 py-8 font-sans">
@@ -64,7 +74,7 @@ export default function SignupPage() {
         <h2 className="mb-8 text-center text-2xl font-bold text-white">
           Create your account
         </h2>
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-3" onSubmit={handleSubmit}>
           <Field
             id="name"
             label="Full Name"
@@ -84,15 +94,30 @@ export default function SignupPage() {
           <Field
             id="password"
             label="Password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete="new-password"
             placeholder="At least 8 characters"
             minLength={8}
             icon={<LockKeyhole className="size-4" />}
+            trailingAction={
+              <button
+                type="button"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="flex items-center justify-center text-gray-400 transition hover:text-gray-200"
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            }
           />
           {error && (
             <p className="text-sm text-red-300" role="alert">
               {error}
+            </p>
+          )}
+          {success && (
+            <p className="text-sm text-green-300" role="status">
+              {success}
             </p>
           )}
           <button
@@ -123,11 +148,13 @@ function Field({
   id,
   label,
   icon,
+  trailingAction,
   ...inputProps
 }: React.ComponentProps<"input"> & {
   id: string;
   label: string;
   icon: React.ReactNode;
+  trailingAction?: React.ReactNode;
 }) {
   return (
     <div>
@@ -139,7 +166,7 @@ function Field({
       </label>
       <div className="relative">
         <span
-          className="pointer-events-none absolute inset-y-0 left-3 my-auto text-gray-400"
+          className="pointer-events-none absolute inset-y-0 left-3 flex items-center justify-center text-gray-400"
           aria-hidden="true"
         >
           {icon}
@@ -148,9 +175,14 @@ function Field({
           id={id}
           name={id}
           required
-          className="block w-full rounded-md border border-transparent bg-[#061927] py-2.5 pr-3 pl-9 text-sm text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-[#7fc4f5] focus:outline-none"
+          className="block w-full rounded-md border border-transparent bg-[#061927] py-2.5 pr-10 pl-9 text-sm text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-[#7fc4f5] focus:outline-none"
           {...inputProps}
         />
+        {trailingAction && (
+          <span className="absolute inset-y-0 right-3 flex items-center justify-center">
+            {trailingAction}
+          </span>
+        )}
       </div>
     </div>
   );
