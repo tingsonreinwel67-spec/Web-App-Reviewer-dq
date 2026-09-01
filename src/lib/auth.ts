@@ -20,7 +20,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!email || !password) return null;
 
         const result = await pool.query(
-          `SELECT id, email, password, name, role FROM users WHERE email = $1`,
+          `SELECT id, email, password, name, role, manager_id FROM users WHERE email = $1`,
           [email],
         );
 
@@ -35,6 +35,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          managerId: user.manager_id, // null for ADMIN, or a USER with no manager
         };
       },
     }),
@@ -54,6 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.managerId = (user as any).managerId;
       }
       return token;
     },
@@ -61,6 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        (session.user as any).managerId = token.managerId;
       }
       return session;
     },
