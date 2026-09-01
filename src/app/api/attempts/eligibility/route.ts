@@ -1,14 +1,19 @@
+import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("user_id");
   const examType = searchParams.get("exam_type");
 
-  if (!userId || !examType) {
+  if (!examType) {
     return NextResponse.json(
-      { error: "user_id and exam_type are required" },
+      { error: "exam_type is required" },
       { status: 400 },
     );
   }
@@ -22,7 +27,7 @@ export async function GET(req: Request) {
        LEFT JOIN memorization_progress mp 
          ON mp.memorization_id = m.id AND mp.user_id = $1
        WHERE m.exam_type = $2`,
-      [userId, examType],
+      [session.user.id, examType],
     );
 
     const { total, mastered } = result.rows[0];

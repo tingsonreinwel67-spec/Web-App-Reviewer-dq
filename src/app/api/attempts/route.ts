@@ -1,23 +1,29 @@
+import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
-    const { user_id, exam_type, type } = body;
+    const { exam_type } = body;
 
-    if (!user_id || !exam_type || !type) {
+    if (!exam_type) {
       return NextResponse.json(
-        { error: "user_id, exam_type, and type are required" },
+        { error: "exam_type is required" },
         { status: 400 },
       );
     }
 
     const result = await pool.query(
-      `INSERT INTO exam_attempts (user_id, exam_type, type, score, total_items, passed)
-       VALUES ($1, $2, $3, 0, 0, false)
+      `INSERT INTO exam_attempts (user_id, exam_type, score, total_items, passed)
+       VALUES ($1, $2, 0, 0, false)
        RETURNING *`,
-      [user_id, exam_type, type],
+      [session.user.id, exam_type],
     );
 
     return NextResponse.json(result.rows[0], { status: 201 });
@@ -31,17 +37,17 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("user_id");
-  const examType = searchParams.get("exam_type");
-
-  if (!userId) {
-    return NextResponse.json({ error: "user_id is required" }, { status: 400 });
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { searchParams } = new URL(req.url);
+  const examType = searchParams.get("exam_type");
 
   try {
     let query = `SELECT * FROM exam_attempts WHERE user_id = $1`;
-    const values: string[] = [userId];
+    const values: string[] = [session.user.id];
 
     if (examType) {
       values.push(examType);

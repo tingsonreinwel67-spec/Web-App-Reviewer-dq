@@ -1,9 +1,16 @@
+import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userId = session.user.id;
+
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("user_id");
   const examType = searchParams.get("exam_type");
 
   if (!userId) {
