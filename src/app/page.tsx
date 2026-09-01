@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowRight, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+  Mail,
+} from "lucide-react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,11 +16,14 @@ import { FormEvent, useState } from "react";
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setSuccess("");
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
@@ -30,8 +40,11 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/dashboard");
-    router.refresh();
+    setSuccess("Login successful! Redirecting to your dashboard...");
+    setTimeout(() => {
+      router.replace("/dashboard");
+      router.refresh();
+    }, 1000);
   }
 
   return (
@@ -45,7 +58,6 @@ export default function LoginPage() {
 
   
   <div className="bg-[#0c2a41] w-full max-w-sm rounded-xl p-8 shadow-xl">
-    <h2 className="text-2xl font-bold text-white text-center mb-8">Welcome back</h2>
 
     <form className="space-y-6" onSubmit={handleSubmit}>
       
@@ -76,18 +88,27 @@ export default function LoginPage() {
         <div className="relative">
           <LockKeyhole className="pointer-events-none absolute inset-y-0 left-3 my-auto size-4 text-gray-400" aria-hidden="true" />
           <input 
-            type="password" 
+            type={showPassword ? "text" : "password"}
             id="password"
             name="password"
             autoComplete="current-password"
             required
-            className="block w-full pl-9 pr-3 py-2.5 border border-transparent rounded-md bg-[#061927] text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#7fc4f5] text-sm" 
+            className="block w-full pl-9 pr-10 py-2.5 border border-transparent rounded-md bg-[#061927] text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#7fc4f5] text-sm" 
             placeholder="Enter your password"
           ></input>
+          <button
+            type="button"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute inset-y-0 right-3 flex items-center text-gray-400 transition hover:text-gray-200"
+          >
+            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
         </div>
       </div>
 
       {error && <p className="text-sm text-red-300" role="alert">{error}</p>}
+      {success && <p className="text-sm text-green-300" role="status">{success}</p>}
       <button
         type="submit"
         disabled={isSubmitting}
