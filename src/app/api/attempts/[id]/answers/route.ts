@@ -1,3 +1,4 @@
+import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
 
@@ -5,9 +6,30 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id: attemptId } = await params;
 
   try {
+    // check ownership before writing anything
+    const attempt = await pool.query(
+      `SELECT user_id FROM exam_attempts WHERE id = $1`,
+      [attemptId],
+    );
+
+    if (attempt.rows.length === 0) {
+      return NextResponse.json({ error: "Attempt not found" }, { status: 404 });
+    }
+
+    const userId = attempt.rows[0].user_id;
+
+    if (userId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await req.json();
     const { question_id, selected_choice_id } = body;
 
@@ -40,29 +62,20 @@ export async function POST(
       [attemptId, question_id, selected_choice_id, isCorrect],
     );
 
-    // Also update the user's cumulative question_progress
-    const attempt = await pool.query(
-      `SELECT user_id FROM exam_attempts WHERE id = $1`,
-      [attemptId],
+    await pool.query(
+      `INSERT INTO question_progress 
+        (user_id, question_id, selected_choice_id, is_correct, times_seen, times_correct, mastered, last_reviewed_at)
+       VALUES ($1, $2, $3, $4, 1, $5, $4, now())
+       ON CONFLICT (user_id, question_id)
+       DO UPDATE SET
+         selected_choice_id = EXCLUDED.selected_choice_id,
+         is_correct = EXCLUDED.is_correct,
+         times_seen = question_progress.times_seen + 1,
+         times_correct = question_progress.times_correct + EXCLUDED.times_correct,
+         mastered = EXCLUDED.is_correct,
+         last_reviewed_at = now()`,
+      [userId, question_id, selected_choice_id, isCorrect, isCorrect ? 1 : 0],
     );
-    const userId = attempt.rows[0]?.user_id;
-
-    if (userId) {
-      await pool.query(
-        `INSERT INTO question_progress 
-          (user_id, question_id, selected_choice_id, is_correct, times_seen, times_correct, mastered, last_reviewed_at)
-         VALUES ($1, $2, $3, $4, 1, $5, $4, now())
-         ON CONFLICT (user_id, question_id)
-         DO UPDATE SET
-           selected_choice_id = EXCLUDED.selected_choice_id,
-           is_correct = EXCLUDED.is_correct,
-           times_seen = question_progress.times_seen + 1,
-           times_correct = question_progress.times_correct + EXCLUDED.times_correct,
-           mastered = EXCLUDED.is_correct,
-           last_reviewed_at = now()`,
-        [userId, question_id, selected_choice_id, isCorrect, isCorrect ? 1 : 0],
-      );
-    }
 
     return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error) {

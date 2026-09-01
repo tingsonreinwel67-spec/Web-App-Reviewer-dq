@@ -1,8 +1,14 @@
+import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
 import type { Question } from "@/lib/types/questions";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const examType = searchParams.get("exam_type");
   const category = searchParams.get("category");

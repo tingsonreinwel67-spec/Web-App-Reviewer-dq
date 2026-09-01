@@ -1,13 +1,13 @@
+import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("user_id");
-
-  if (!userId) {
-    return NextResponse.json({ error: "user_id is required" }, { status: 400 });
+export async function GET() {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = session.user.id;
 
   try {
     const query = `
