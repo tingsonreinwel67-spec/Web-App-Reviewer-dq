@@ -1,3 +1,4 @@
+// app/api/flashcards/[id]/progress/route.ts
 import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
@@ -24,7 +25,6 @@ export async function POST(
       );
     }
 
-    // Confirm the flashcard actually exists
     const cardCheck = await pool.query(
       `SELECT id FROM flashcards WHERE id = $1`,
       [flashcardId],
