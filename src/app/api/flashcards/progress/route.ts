@@ -12,10 +12,6 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const examType = searchParams.get("exam_type");
 
-  if (!userId) {
-    return NextResponse.json({ error: "user_id is required" }, { status: 400 });
-  }
-
   try {
     const query = `
       SELECT 

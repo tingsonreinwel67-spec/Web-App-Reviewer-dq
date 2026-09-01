@@ -2,10 +2,7 @@ import pool from "@/lib/db";
 import { Flashcard } from "@/lib/types/flashcard";
 import { NextResponse } from "next/server";
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   try {
