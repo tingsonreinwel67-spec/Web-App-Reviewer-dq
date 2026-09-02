@@ -1,29 +1,13 @@
-// app/learningMethods/flashCard/flash-card-client.tsx
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, Shuffle, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { examLabels, type ExamType } from "@/lib/types/common";
-import type { Question } from "@/lib/types/questions";
+import type { Flashcard } from "@/lib/types/flashcard";
 import { Result } from "@/components/ui/result";
 
 const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
-
-function splitQuestion(text: string) {
-  const matches = [...text.matchAll(/(?:^|\s)([IVXLCDM]+\.)\s*/g)];
-  if (!matches.length) return { prompt: text, statements: [] as string[] };
-
-  const starts = matches.map(
-    (match) => (match.index ?? 0) + match[0].indexOf(match[1]),
-  );
-  return {
-    prompt: text.slice(0, starts[0]).trim(),
-    statements: starts.map((start, index) =>
-      text.slice(start, starts[index + 1]).trim(),
-    ),
-  };
-}
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
@@ -39,7 +23,7 @@ function FlashCardContent() {
     searchParams.get("exam_type") === "TRADITIONAL_LIFE"
       ? "TRADITIONAL_LIFE"
       : "VUL";
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [cards, setCards] = useState<Flashcard[]>([]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [ratings, setRatings] = useState<Record<string, boolean>>({});
@@ -52,18 +36,18 @@ function FlashCardContent() {
 
   useEffect(() => {
     let active = true;
-    fetch(`/api/questions?exam_type=${encodeURIComponent(type)}`)
-      .then((response) => response.json() as Promise<Question[]>)
+    fetch(`/api/flashcards?exam_type=${encodeURIComponent(type)}`)
+      .then((response) => response.json() as Promise<Flashcard[]>)
       .then((items) => {
         if (active) {
-          setQuestions(shuffled(items));
+          setCards(shuffled(items));
           setIndex(0);
           setRevealed(false);
           setRatings({});
           setFinished(false);
         }
       })
-      .catch(() => active && setQuestions([]))
+      .catch(() => active && setCards([]))
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
@@ -78,16 +62,16 @@ function FlashCardContent() {
     [],
   );
 
-  const question = questions[index];
-  const questionParts = question ? splitQuestion(question.text) : null;
-  const wrong = questions.filter((item) => ratings[item.id] === false);
+  const card = cards[index];
+  const wrong = cards.filter((item) => ratings[item.id] === false);
+
   const scramble = () => {
-    setQuestions((current) => shuffled(current));
+    setCards((current) => shuffled(current));
     setRevealed(false);
     setFeedback(null);
   };
   const restart = () => {
-    setQuestions((current) => shuffled(current));
+    setCards((current) => shuffled(current));
     setIndex(0);
     setRevealed(false);
     setRatings({});
@@ -96,7 +80,7 @@ function FlashCardContent() {
   };
   const redoMistakes = () => {
     if (!wrong.length) return;
-    setQuestions(shuffled(wrong));
+    setCards(shuffled(wrong));
     setIndex(0);
     setRevealed(false);
     setRatings({});
@@ -107,12 +91,11 @@ function FlashCardContent() {
     setFinished(true);
   };
   const answer = (isCorrect: boolean) => {
-    if (!question || !revealed || feedback) return;
-    setRatings((current) => ({ ...current, [question.id]: isCorrect }));
+    if (!card || !revealed || feedback) return;
+    setRatings((current) => ({ ...current, [card.id]: isCorrect }));
     setFeedback(isCorrect ? "know" : "still-learning");
 
-    // persist to backend — fire and forget, don't block the UI transition
-    fetch(`/api/flashcards/${question.id}/progress`, {
+    fetch(`/api/flashcards/${card.id}/progress`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mastered: isCorrect }),
@@ -120,7 +103,7 @@ function FlashCardContent() {
 
     advanceTimer.current = window.setTimeout(() => {
       setFeedback(null);
-      if (index === questions.length - 1) complete();
+      if (index === cards.length - 1) complete();
       else {
         setIndex(index + 1);
         setRevealed(false);
@@ -132,7 +115,7 @@ function FlashCardContent() {
     return (
       <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
         <Card>
-          <p className="text-sm text-muted-foreground">Loading questions...</p>
+          <p className="text-sm text-muted-foreground">Loading flashcards...</p>
         </Card>
       </main>
     );
@@ -140,19 +123,19 @@ function FlashCardContent() {
     return (
       <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
         <Result
-          correct={questions.length - wrong.length}
+          correct={cards.length - wrong.length}
           wrong={wrong.length}
           onTryAgain={restart}
           onRedoMistakes={redoMistakes}
         />
       </main>
     );
-  if (!question)
+  if (!card)
     return (
       <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
         <Card>
           <p className="text-sm text-muted-foreground">
-            No questions are available for this exam right now.
+            No flashcards are available for this exam right now.
           </p>
         </Card>
       </main>
@@ -179,13 +162,13 @@ function FlashCardContent() {
           {examLabels[type]} - Flashcard
         </p>
         <span className="text-xs text-muted-foreground">
-          {index + 1} / {questions.length}
+          {index + 1} / {cards.length}
         </span>
       </div>
       <div className="h-2.5 overflow-hidden rounded-full bg-muted">
         <div
           className="h-full rounded-full bg-emerald-500"
-          style={{ width: `${((index + 1) / questions.length) * 100}%` }}
+          style={{ width: `${((index + 1) / cards.length) * 100}%` }}
         />
       </div>
       {feedback ? (
@@ -199,49 +182,32 @@ function FlashCardContent() {
       ) : (
         <button
           type="button"
-          aria-label={revealed ? "Show question" : "Show answer"}
+          aria-label={revealed ? "Show front" : "Show back"}
           onClick={() => setRevealed((current) => !current)}
-          className="w-full text-left perspective-distant"
+          className="w-full text-left [perspective:1000px]"
         >
           <span
-            className={`relative grid transition-transform duration-500 transform-3d ${revealed ? "transform-rotateY(180deg)" : ""}`}
+            className={`relative grid transition-transform duration-500 [transform-style:preserve-3d] ${revealed ? "[transform:rotateY(180deg)]" : ""}`}
           >
-            <span className="col-start-1 row-start-1 flex min-h-88 flex-col rounded-3xl border border-border bg-card p-6 shadow-sm backface-hidden">
+            <span className="col-start-1 row-start-1 flex min-h-88 flex-col rounded-3xl border border-border bg-card p-6 shadow-sm [backface-visibility:hidden]">
               <span className="font-mono text-xs uppercase text-primary">
-                {question.category}
+                {card.category}
               </span>
               <span className="mt-6 block text-xl font-semibold leading-8">
-                {questionParts?.prompt}
+                {card.front}
               </span>
-              {questionParts && questionParts.statements.length > 0 && (
-                <span className="mt-5 flex flex-col gap-2">
-                  {questionParts.statements.map((statement) => (
-                    <span
-                      key={statement}
-                      className="rounded-xl bg-muted/40 px-4 py-3 text-sm font-normal leading-6"
-                    >
-                      {statement}
-                    </span>
-                  ))}
-                </span>
-              )}
               <span className="mt-auto pt-6 text-sm text-muted-foreground">
                 Tap card to reveal the answer
               </span>
             </span>
-            <span className="col-start-1 row-start-1 flex min-h-88 flex-col rounded-3xl border border-primary/30 bg-card p-6 shadow-sm backface-hidden transform-rotateY(180deg)">
+            <span className="col-start-1 row-start-1 flex min-h-88 flex-col rounded-3xl border border-primary/30 bg-card p-6 shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]">
               <span className="flex flex-1 flex-col justify-center">
                 <span className="font-mono text-center text-xs uppercase text-primary">
                   Answer
                 </span>
                 <span className="mt-6 block text-center text-xl font-semibold leading-8">
-                  {question.choices.find((choice) => choice.is_correct)?.text}
+                  {card.back}
                 </span>
-                {question.explanation && (
-                  <span className="mt-6 block rounded-2xl bg-muted p-4 text-sm leading-6 text-muted-foreground">
-                    {question.explanation}
-                  </span>
-                )}
               </span>
               <span className="mt-auto pt-6 text-sm text-muted-foreground">
                 Tap card to return to the question
@@ -300,7 +266,7 @@ function FlashCardLoading() {
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
       <Card>
-        <p className="text-sm text-muted-foreground">Loading questions...</p>
+        <p className="text-sm text-muted-foreground">Loading flashcards...</p>
       </Card>
     </main>
   );
