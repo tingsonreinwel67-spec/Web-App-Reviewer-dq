@@ -25,6 +25,14 @@ const initialProgress: ProgressState = {
   TRADITIONAL_LIFE: { flashcard: 0, memorize: 0, practice: 0 },
 };
 
+type ProgressSummaryRow = {
+  exam_type: ExamType;
+  flashcard_pct: number;
+  memorize_pct: number;
+  practice_exam_pct: number;
+  overall_pct: number;
+};
+
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
@@ -130,15 +138,33 @@ export function DashboardPage() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [mode, setMode] = useState<StudyMode | null>(null);
   const [progress, setProgress] = useState(initialProgress);
+
   useEffect(() => {
-    const saved = window.localStorage.getItem("reviewer-progress");
-    if (saved) setProgress(JSON.parse(saved));
+    fetch("/api/progress")
+      .then((r) => r.json())
+      .then((rows: ProgressSummaryRow[]) => {
+        const next: ProgressState = {
+          VUL: { flashcard: 0, memorize: 0, practice: 0 },
+          TRADITIONAL_LIFE: { flashcard: 0, memorize: 0, practice: 0 },
+        };
+        for (const row of rows) {
+          next[row.exam_type] = {
+            flashcard: row.flashcard_pct,
+            memorize: row.memorize_pct,
+            practice: row.practice_exam_pct,
+          };
+        }
+        setProgress(next);
+      })
+      .catch((err) => console.error("Failed to load progress:", err));
+
     const savedTheme = window.localStorage.getItem("reviewer-theme") as
       | "dark"
       | "light"
       | null;
     if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
   }, []);
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme === "light");
