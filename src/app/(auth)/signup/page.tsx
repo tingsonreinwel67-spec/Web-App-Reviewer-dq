@@ -63,18 +63,53 @@ export default function SignupPage() {
     }, 1000);
   }
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[#061927] px-4 py-8 font-sans">
-      <div className="mb-8 text-center">
-        <h1 className="mb-1 text-4xl font-extrabold tracking-wide text-[#7fc4f5]">
-          RENEVIEW
-        </h1>
-        <p className="text-xs text-gray-300">Insurance Licensing Journey</p>
-      </div>
-      <div className="w-full max-w-sm rounded-xl bg-[#0c2a41] p-8 shadow-xl">
-        <h2 className="mb-8 text-center text-2xl font-bold text-white">
-          Create your account
-        </h2>
-        <form className="space-y-3" onSubmit={handleSubmit}>
+    <main className="min-h-screen bg-[#FBF7EE] flex items-center justify-center p-4 md:p-8">
+      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-[1.05fr_1fr] rounded-lg bg-white border border-[#E4DCC8] overflow-hidden md:min-h-[560px]">
+        <div className="relative hidden md:flex flex-col justify-between overflow-hidden p-11 bg-gradient-to-b from-[#123057] to-[#ffffff] text-white min-h-[560px]">
+          <div className="flex items-center gap-2.5 text-xl relative z-10">
+            <span className="inline-block w-[9px] h-[9px] rounded-full bg-[#FDB913]" />
+            RENEVIEW
+          </div>
+
+          <div className="absolute inset-0 pointer-events-none">
+            <div
+              className="absolute -right-[70px] -bottom-[70px] size-[260px] rounded-full bg-[radial-gradient(circle_at_35%_30%,#FDB913_0%,#C98A00_55%,transparent_72%)] opacity-90"
+            />
+          </div>
+
+          <div className="relative z-10 max-w-[340px] -translate-y-6">
+            <h1 className="text-4xl leading-snug mb-4">
+              <span className="block text-white font-extrabold">OUR TARGET.</span>
+              <span className="block text-[#FDB913] font-extrabold">OUR WIN.</span>
+            </h1>
+            <p className="text-base font-semibold leading-relaxed text-white/80">
+              &quot;Every action counts. Every conversation matters. Every submission brings us closer to our dreams.&quot;
+            </p>
+            <p className="mt-4 text-3xl font-semibold italic text-[#FDB913]">
+              Let&apos;s do this, Team!
+            </p>
+          </div>
+
+          <div className="relative z-10 flex gap-6 mt-7 -translate-y-6">
+            <div>
+              <div className="text-lg text-[#FDB913]">DAILY ACTIONS.</div>
+              <div className="text-lg text-[#FDB913]">BIG RESULTS.</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-9 md:min-h-[560px] md:p-12 flex flex-col justify-start">
+          <div className="flex md:hidden items-center gap-2 text-lg mb-6 text-[#0B2340]">
+            <span className="inline-block w-[8px] h-[8px] rounded-full bg-[#FDB913]" />
+            RENEVIEW
+          </div>
+
+          <h1 className="text-5xl mb-2 text-[#0B2340]">Create your account</h1>
+          <p className="text-base text-[#5B6472] mb-8">
+            Start your insurance licensing journey with RENEVIEW.
+          </p>
+
+          <form className="space-y-[18px]" onSubmit={handleSubmit}>
           <Field
             id="name"
             label="Full Name"
@@ -104,41 +139,42 @@ export default function SignupPage() {
                 type="button"
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="flex items-center justify-center text-gray-400 transition hover:text-gray-200"
+                className="flex items-center justify-center text-[#A9A092] transition hover:text-[#0B2340]"
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             }
           />
           {error && (
-            <p className="text-sm text-red-300" role="alert">
+            <p className="text-sm text-red-600" role="alert">
               {error}
             </p>
           )}
           {success && (
-            <p className="text-sm text-green-300" role="status">
+            <p className="text-sm text-green-700" role="status">
               {success}
             </p>
           )}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-2 flex w-full items-center justify-center rounded-md bg-[#f8d46a] px-4 py-2.5 text-sm font-bold text-[#061927] shadow-sm transition-colors hover:bg-[#eabb4c] focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+            className="mt-1.5 flex w-full items-center justify-center gap-2 px-4 py-3.5 text-base bg-[#FDB913] text-[#0B2340] shadow-sm transition-colors hover:bg-[#C98A00] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0B2340] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isSubmitting ? (
-              <LoaderCircle className="mr-2 size-4 animate-spin" />
+                <LoaderCircle className="size-4 animate-spin" />
             ) : (
-              <ArrowRight className="mr-2 size-4" />
+                <ArrowRight className="size-4" />
             )}
             {isSubmitting ? "Creating account..." : "Create Account"}
           </button>
-        </form>
-        <p className="mt-8 text-center text-xs text-gray-400">
-          Already have an account?{" "}
-          <Link href="/" className="font-semibold text-white hover:underline">
-            Log in
-          </Link>
-        </p>
+          </form>
+          <p className="mt-8 text-center text-base text-[#5B6472]">
+            Already have an account?{" "}
+            <Link href="/" className="font-bold text-[#0B2340] hover:underline">
+              Log in
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   );
@@ -160,13 +196,13 @@ function Field({
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-gray-400"
+        className="mb-1.5 block text-sm font-semibold text-[#10151F]"
       >
         {label}
       </label>
       <div className="relative">
         <span
-          className="pointer-events-none absolute inset-y-0 left-3 flex items-center justify-center text-gray-400"
+          className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center justify-center text-[#A9A092]"
           aria-hidden="true"
         >
           {icon}
@@ -175,11 +211,11 @@ function Field({
           id={id}
           name={id}
           required
-          className="block w-full rounded-md border border-transparent bg-[#061927] py-2.5 pr-10 pl-9 text-sm text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-[#7fc4f5] focus:outline-none"
+          className="block w-full pl-10 pr-10 py-3 border border-[#E4DCC8] bg-white text-[#10151F] placeholder-[#A9A092] text-base outline-none transition focus:border-[#0B2340] focus:ring-4 focus:ring-[#0B2340]/10"
           {...inputProps}
         />
         {trailingAction && (
-          <span className="absolute inset-y-0 right-3 flex items-center justify-center">
+          <span className="absolute inset-y-0 right-3.5 flex items-center justify-center">
             {trailingAction}
           </span>
         )}
