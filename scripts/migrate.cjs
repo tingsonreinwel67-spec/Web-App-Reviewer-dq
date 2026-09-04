@@ -1,0 +1,76 @@
+// Idempotent schema migration for the RENEVIEW redesign.
+// Run with: node scripts/migrate.cjs
+require("dotenv").config({ path: ".env.local" });
+
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+const statements = [
+  `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     token_hash text NOT NULL UNIQUE,
+     expires_at timestamptz NOT NULL,
+     used_at    timestamptz,
+     created_at timestamptz NOT NULL DEFAULT now()
+   )`,
+
+  `CREATE INDEX IF NOT EXISTS password_reset_tokens_user_id_idx
+     ON password_reset_tokens (user_id)`,
+
+  `CREATE TABLE IF NOT EXISTS study_streaks (
+     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id        uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     exam_type      exam_type NOT NULL,
+     current_streak integer NOT NULL DEFAULT 0,
+     best_streak    integer NOT NULL DEFAULT 0,
+     last_answer_at timestamptz,
+     UNIQUE (user_id, exam_type)
+   )`,
+];
+
+// One example term so the Glossary renders against real data.
+const seedTerm = {
+  exam_type: "VUL",
+  term: "Actuary",
+  definition:
+    "A business professional who deals with the measurement and management of risk and uncertainty. They use mathematics, statistics, and financial theory to study uncertain future events, especially those of concern to insurance and pension programs.",
+};
+
+(async () => {
+  const client = await pool.connect();
+  try {
+    for (const sql of statements) {
+      await client.query(sql);
+      console.log("ok  " + sql.trim().split("\n")[0]);
+    }
+
+    const existing = await client.query(
+      `SELECT id FROM vocabulary_terms WHERE term = $1 AND exam_type = $2`,
+      [seedTerm.term, seedTerm.exam_type],
+    );
+
+    if (existing.rowCount === 0) {
+      await client.query(
+        `INSERT INTO vocabulary_terms (exam_type, term, definition)
+         VALUES ($1, $2, $3)`,
+        [seedTerm.exam_type, seedTerm.term, seedTerm.definition],
+      );
+      console.log(`ok  seeded vocabulary term "${seedTerm.term}"`);
+    } else {
+      console.log(`ok  vocabulary term "${seedTerm.term}" already present`);
+    }
+
+    console.log("\nMigration complete.");
+  } catch (error) {
+    console.error("Migration failed:", error.message);
+    process.exitCode = 1;
+  } finally {
+    client.release();
+    await pool.end();
+  }
+})();

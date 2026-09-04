@@ -3,23 +3,8 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --font-sans: 'Hanken Grotesk', sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -44,142 +29,50 @@
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
 }
+
+/* ---------------------------------------------------------------------------
+   Palette
+
+   RENEVIEW is a single committed light theme. The previous file carried .light,
+   .dark and a prefers-color-scheme block that all resolved to identical values,
+   so the theme toggle they backed had no visible effect.
+   --------------------------------------------------------------------------- */
 
 :root {
   color-scheme: light;
-  --primary-yellow: #ffd700;
-  --secondary-teal: #002033;
-  --tertiary-blue: #527087;
-  --neutral-ink: #1a1a1a;
-  --background: #dedddd;
-  --foreground: #1a1a1a;
-  --card: #f4f1f1;
-  --card-foreground: #1a1a1a;
-  --popover: #f4f1f1;
-  --popover-foreground: #1a1a1a;
-  --primary: #ffd700;
-  --primary-foreground: #1a1a1a;
-  --secondary: #002033;
-  --tertiary: #527087;
-  --secondary-foreground: #ffffff;
-  --muted: #e9e6e6;
-  --muted-foreground: #6f6b69;
-  --accent: #ffd700;
-  --accent-foreground: #1a1a1a;
-  --destructive: #c91d1d;
-  --border: #c9c5c3;
-  --input: #c9c5c3;
-  --ring: #806d00;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
 
-.light {
-  color-scheme: light;
-  --background: #dedddd;
-  --foreground: #1a1a1a;
-  --card: #f4f1f1;
-  --card-foreground: #1a1a1a;
-  --popover: #f4f1f1;
-  --popover-foreground: #1a1a1a;
-  --primary: #ffd700;
-  --primary-foreground: #1a1a1a;
-  --secondary: #002033;
-  --secondary-foreground: #ffffff;
-  --muted: #e9e6e6;
-  --muted-foreground: #6f6b69;
-  --accent: #ffd700;
-  --accent-foreground: #1a1a1a;
-  --destructive: #c91d1d;
-  --border: #c9c5c3;
-  --input: #c9c5c3;
-  --ring: #806d00;
-}
+  --background: #fbf7ee;
+  --foreground: #10151f;
 
-.dark {
-  color-scheme: light;
-  --background: #dedddd;
-  --foreground: #1a1a1a;
-  --card: #f4f1f1;
-  --card-foreground: #1a1a1a;
-  --popover: #f4f1f1;
-  --popover-foreground: #1a1a1a;
-  --primary: #ffd700;
-  --primary-foreground: #1a1a1a;
-  --secondary: #002033;
-  --secondary-foreground: #ffffff;
-  --muted: #e9e6e6;
-  --muted-foreground: #6f6b69;
-  --accent: #ffd700;
-  --accent-foreground: #1a1a1a;
-  --destructive: #c91d1d;
-  --border: #c9c5c3;
-  --input: #c9c5c3;
-  --ring: #806d00;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
+  --card: #ffffff;
+  --card-foreground: #10151f;
+  --popover: #ffffff;
+  --popover-foreground: #10151f;
 
-@media (prefers-color-scheme: dark) {
-  :root.light-only {
-    color-scheme: dark;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
-  }
+  /* Yellow carries actions; navy carries structure. */
+  --primary: #ffd400;
+  --primary-foreground: #0b2340;
+  --primary-strong: #c98a00;
+
+  --secondary: #0b2340;
+  --secondary-foreground: #ffffff;
+  --secondary-soft: #0f2e4d;
+
+  --muted: #f2ede1;
+  --muted-foreground: #5b6472;
+
+  --accent: #fff8d6;
+  --accent-foreground: #0b2340;
+
+  --destructive: #c91d1d;
+  --success: #0f7b52;
+
+  --border: #eae3d2;
+  --input: #e4dcc8;
+  --ring: #0b2340;
+
+  --radius: 0.625rem;
 }
 
 /* ---------------------------------------------------------------------------
@@ -231,6 +124,26 @@
   line-height: 1.2;
 }
 
+/* Card surface and page shell shared by the redesigned screens. */
+@utility rv-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+@utility rv-shell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 72rem;
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+
+  @media (width >= 40rem) {
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+}
+
 @layer base {
   html {
     /* Stop iOS from inflating text when the phone is rotated to landscape. */
@@ -248,6 +161,13 @@
     /* Long words (URLs, uninterrupted terms) wrap instead of forcing the page
        to scroll sideways. */
     overflow-wrap: break-word;
+  }
+
+  /* Headings in the mockups are heavy and tight. */
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
   }
 
   img,
@@ -281,5 +201,68 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Motivation animations
+   --------------------------------------------------------------------------- */
+
+@keyframes rv-confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--rv-dx), var(--rv-dy), 0) rotate(var(--rv-spin))
+      scale(0.4);
+  }
+}
+
+.rv-confetti-piece {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: rv-confetti-fall var(--rv-duration, 1100ms)
+    cubic-bezier(0.16, 0.68, 0.4, 1) forwards;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+@keyframes rv-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.rv-pop-in {
+  animation: rv-pop-in 220ms ease-out both;
+}
+
+@keyframes rv-streak-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+}
+
+.rv-streak-pulse {
+  animation: rv-streak-pulse 520ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-confetti-piece {
+    display: none;
   }
 }

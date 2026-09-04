@@ -1,5 +1,7 @@
 import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
+import { lockReason } from "@/lib/eligibility";
+import { fetchEligibility } from "@/lib/mastery";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -16,6 +18,22 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "exam_type is required" },
         { status: 400 },
+      );
+    }
+
+    // The UI locks the entry point, but the gate has to live here too — the
+    // lock is presentation, this is the rule.
+    const eligibility = await fetchEligibility(session.user.id, exam_type);
+
+    if (!eligibility.eligible) {
+      return NextResponse.json(
+        {
+          error:
+            lockReason(eligibility.flashcards, eligibility.memorization) ??
+            "You are not eligible for this practice exam yet.",
+          eligibility,
+        },
+        { status: 403 },
       );
     }
 
