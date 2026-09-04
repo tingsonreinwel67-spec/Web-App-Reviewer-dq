@@ -1,6 +1,7 @@
 // app/api/memorization/[id]/progress/route.ts
 import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
+import { applyStreak } from "@/lib/streak-store";
 import { NextResponse } from "next/server";
 
 export async function POST(
@@ -34,7 +35,7 @@ export async function POST(
 
     // Confirm the memorization item exists
     const itemCheck = await pool.query(
-      `SELECT id FROM memorization WHERE id = $1`,
+      `SELECT id, exam_type FROM memorization WHERE id = $1`,
       [memorizationId],
     );
 
@@ -78,7 +79,14 @@ export async function POST(
       ],
     );
 
-    return NextResponse.json(result.rows[0]);
+    // Returned with the answer so the client can celebrate without a second call.
+    const streak = await applyStreak(
+      session.user.id,
+      itemCheck.rows[0].exam_type,
+      is_correct,
+    );
+
+    return NextResponse.json({ ...result.rows[0], streak });
   } catch (error) {
     console.error("Error submitting memorization review:", error);
     return NextResponse.json(
