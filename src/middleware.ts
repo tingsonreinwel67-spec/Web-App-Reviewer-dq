@@ -10,6 +10,7 @@ export const config = {
     "/resources/:path*",
     "/api/attempts/:path*",
     "/api/flashcards/:path*",
+    "/api/invites/:path*",
     "/api/memorization/:path*",
     "/api/progress/:path*",
     "/api/questions/:path*",
