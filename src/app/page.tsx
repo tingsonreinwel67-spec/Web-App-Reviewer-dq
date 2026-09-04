@@ -48,11 +48,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B2340] flex items-center justify-center p-4 md:p-8">
+    <div className="min-h-screen bg-[#FBF7EE] flex items-center justify-center p-4 md:p-8">
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-[1.05fr_1fr] rounded-lg bg-white border border-[#E4DCC8] overflow-hidden md:min-h-[560px]">
-
-   
-        <div className="relative hidden md:flex flex-col justify-between overflow-hidden p-11 bg-white text-[#0B2340] min-h-[560px]">
+        <div className="relative hidden md:flex flex-col justify-between overflow-hidden p-11 not-last: bg-gradient-to-b from-[#123057] to-[#123059] text-white min-h-[560px]">
           <div className="flex items-center gap-2.5 text-xl relative z-10">
             <span className="inline-block w-[9px] h-[9px] rounded-full bg-[#FDB913]" />
             RENEVIEW
@@ -67,21 +65,21 @@ export default function LoginPage() {
 
           <div className="relative z-10 max-w-[340px] -translate-y-6">
             <h1 className="text-4xl leading-snug mb-4">
-              <span className="block text-[#0B2340] font-extrabold ">OUR TARGET.</span>
+              <span className="block text-white font-extrabold ">OUR TARGET.</span>
               <span className="block text-[#FDB913] font-extrabold">OUR WIN.</span>
             </h1>
-            <p className="text-base font-semibold leading-relaxed text-[#5B6472]">
+            <p className="text-base font-semibold leading-relaxed text-white">
               &quot;Every action counts. Every conversation matters. Every submission brings us closer to our dreams.&quot;
             </p>
-            <p className="mt-4 text-3xl font-semibold italic text-[#0B2340]">
+            <p className="mt-4 text-3xl font-semibold italic text-[#FDB913]">
               Let&apos;s do this, Team!
             </p>
           </div>
 
           <div className="relative z-10 flex gap-6 mt-7 -translate-y-6">
             <div>
-              <div className="text-lg text-[#0B2340]">DAILY ACTIONS.</div>
-              <div className="text-lg text-[#0B2340]">BIG RESULTS.</div>
+              <div className="text-lg text-[#FDB913]">DAILY ACTIONS.</div>
+              <div className="text-lg text-[#FDB913]">BIG RESULTS.</div>
 
             </div>
           </div> 
