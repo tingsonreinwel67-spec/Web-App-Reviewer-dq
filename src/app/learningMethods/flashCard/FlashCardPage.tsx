@@ -6,6 +6,7 @@ import { Result } from "@/components/ui/result";
 import { motivationFor, type MotivationMessage } from "@/lib/motivation";
 import { splitStatements } from "@/lib/question-text";
 import { restoreSession, type SavedSession } from "@/lib/study-session";
+import { useFitText, type FitText } from "@/lib/use-fit-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Flashcard } from "@/lib/types/flashcard";
 import {
@@ -154,6 +155,13 @@ function FlashCardContent() {
   const front = splitStatements(card?.front ?? "");
   const back = splitStatements(card?.back ?? "");
 
+  const frontFit = useFitText<HTMLSpanElement, HTMLSpanElement>(
+    card?.front ?? "",
+  );
+  const backFit = useFitText<HTMLSpanElement, HTMLSpanElement>(
+    card?.back ?? "",
+  );
+
   /** Step between cards without rating the current one. */
   const move = (step: number) => {
     if (message) return;
@@ -294,59 +302,65 @@ function FlashCardContent() {
             onClick={() => setRevealed((current) => !current)}
             className="w-full [perspective:1200px]"
           >
+            {/* The frame is a fixed height on every card; the text inside
+                scales itself down to fit, and scrolls if it hits the floor. */}
             <span
-              className={`relative grid transition-transform duration-500 [transform-style:preserve-3d] ${
+              className={`relative grid h-[24rem] transition-transform duration-500 [transform-style:preserve-3d] sm:h-[28rem] ${
                 revealed ? "[transform:rotateY(180deg)]" : ""
               }`}
             >
-              <span className="rv-card col-start-1 row-start-1 flex min-h-[320px] flex-col items-center justify-center gap-5 p-10 [backface-visibility:hidden]">
-                <HelpCircle className="size-7 text-[#C9A227]" />
+              <span className="rv-card col-start-1 row-start-1 flex h-full flex-col items-center justify-center gap-4 overflow-hidden p-6 [backface-visibility:hidden] sm:p-10">
+                <HelpCircle className="size-7 shrink-0 text-[#C9A227]" />
 
-                {front.prompt && (
-                  <span className="block text-2xl font-extrabold leading-9">
-                    {front.prompt}
-                  </span>
-                )}
+                <FitBox fit={frontFit}>
+                  {front.prompt && (
+                    <span className="block text-[1.5em] font-extrabold leading-[1.35]">
+                      {front.prompt}
+                    </span>
+                  )}
 
-                {/* Enumerated statements read as a list, not as one paragraph
-                    run together with the question. */}
-                {front.statements.length > 0 && (
-                  <span className="flex w-full flex-col gap-2.5 text-left">
-                    {front.statements.map((statement) => (
-                      <span
-                        key={statement}
-                        className="block rounded-lg bg-muted px-4 py-3 text-lg font-semibold leading-8"
-                      >
-                        {statement}
-                      </span>
-                    ))}
-                  </span>
-                )}
+                  {/* Enumerated statements read as a list, not as one paragraph
+                      run together with the question. */}
+                  {front.statements.length > 0 && (
+                    <span className="flex w-full flex-col gap-[0.6em] text-left">
+                      {front.statements.map((statement) => (
+                        <span
+                          key={statement}
+                          className="block rounded-lg bg-muted px-[0.9em] py-[0.65em] text-[1.125em] font-semibold leading-[1.5]"
+                        >
+                          {statement}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </FitBox>
 
-                <span className="mt-1 block text-xs font-semibold text-muted-foreground">
+                <span className="block shrink-0 text-xs font-semibold text-muted-foreground">
                   Tap to reveal answer
                 </span>
               </span>
 
-              <span className="col-start-1 row-start-1 flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-xl bg-[#FFD400] p-10 text-[#0B2340] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                {back.prompt && (
-                  <span className="block text-2xl font-bold leading-9">
-                    {back.prompt}
-                  </span>
-                )}
+              <span className="col-start-1 row-start-1 flex h-full flex-col items-center justify-center gap-4 overflow-hidden rounded-xl bg-[#FFD400] p-6 text-[#0B2340] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:p-10">
+                <FitBox fit={backFit}>
+                  {back.prompt && (
+                    <span className="block text-[1.5em] font-bold leading-[1.35]">
+                      {back.prompt}
+                    </span>
+                  )}
 
-                {back.statements.length > 0 && (
-                  <span className="flex w-full flex-col gap-2.5 text-left">
-                    {back.statements.map((statement) => (
-                      <span
-                        key={statement}
-                        className="block rounded-lg bg-[#0B2340]/10 px-4 py-3 text-xl font-semibold leading-8"
-                      >
-                        {statement}
-                      </span>
-                    ))}
-                  </span>
-                )}
+                  {back.statements.length > 0 && (
+                    <span className="flex w-full flex-col gap-[0.6em] text-left">
+                      {back.statements.map((statement) => (
+                        <span
+                          key={statement}
+                          className="block rounded-lg bg-[#0B2340]/10 px-[0.9em] py-[0.65em] text-[1.25em] font-semibold leading-[1.5]"
+                        >
+                          {statement}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </FitBox>
               </span>
             </span>
           </button>
@@ -403,6 +417,33 @@ function FlashCardContent() {
         )}
       </main>
     </div>
+  );
+}
+
+/**
+ * Holds one card face's text. The outer span is the measured frame; the inner
+ * one carries the fitted base size that every em inside it scales from.
+ */
+function FitBox({
+  fit,
+  children,
+}: {
+  fit: FitText<HTMLSpanElement, HTMLSpanElement>;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      ref={fit.boxRef}
+      className="flex min-h-0 w-full flex-1 items-center overflow-y-auto overscroll-contain"
+    >
+      <span
+        ref={fit.contentRef}
+        style={{ fontSize: `${fit.fontSize}px` }}
+        className="flex w-full flex-col items-center gap-[0.9em]"
+      >
+        {children}
+      </span>
+    </span>
   );
 }
 
