@@ -23,7 +23,7 @@ export function Profile({
     <div className="relative">
       <button
         onClick={() => setProfileOpen(!profileOpen)}
-        className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1.5 hover:bg-muted"
+        className="flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-2 py-1.5 hover:bg-muted"
         aria-expanded={profileOpen}
         aria-label="Open user menu"
       >
@@ -36,9 +36,9 @@ export function Profile({
         <ChevronDown className="size-4 text-muted-foreground" />
       </button>
       {profileOpen && (
-        <div className="absolute right-0 top-12 w-64 overflow-hidden rounded-2xl border border-border bg-popover p-2 shadow-xl">
+        <div className="absolute right-0 top-12 w-[min(16rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-popover p-2 shadow-xl">
           <div className="border-b border-border px-3 py-3">
-            <p className="font-semibold">{name}</p>
+            <p className="truncate font-semibold">{name}</p>
             <p className="mt-1 truncate text-xs text-muted-foreground">
               {email}
             </p>

@@ -13,8 +13,8 @@ export function Header({
   toggleTheme: () => void;
 }) {
   return (
-    <header className="relative z-20 flex items-center justify-between px-5 py-4">
-      <button onClick={home} className="flex items-center gap-2 font-mono text-sm font-bold">
+    <header className="app-gutter relative z-20 flex items-center justify-between gap-3 py-3 sm:py-4">
+      <button onClick={home} className="-ml-1 flex min-h-11 items-center gap-2 px-1 font-mono text-sm font-bold">
         REVIEWER
       </button>
       <Profile progress={progress} theme={theme} toggleTheme={toggleTheme} />

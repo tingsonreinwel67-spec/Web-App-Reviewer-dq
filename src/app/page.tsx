@@ -48,9 +48,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FBF7EE] flex items-center justify-center p-4 md:p-8">
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-[1.05fr_1fr] rounded-lg bg-white border border-[#E4DCC8] overflow-hidden md:min-h-[560px]">
-        <div className="relative hidden md:flex flex-col justify-between overflow-hidden p-11 not-last: bg-gradient-to-b from-[#123057] to-[#123059] text-white min-h-[560px]">
+    <div className="min-h-screen-safe app-gutter flex items-center justify-center bg-[#FBF7EE] py-6 sm:py-10">
+      <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-lg border border-[#E4DCC8] bg-white lg:min-h-[560px] lg:grid-cols-[1.05fr_1fr]">
+        <div className="relative hidden min-h-[560px] flex-col justify-between overflow-hidden bg-gradient-to-b from-[#123057] to-[#123059] p-8 text-white lg:flex xl:p-11">
           <div className="flex items-center gap-2.5 text-xl relative z-10">
             <span className="inline-block w-[9px] h-[9px] rounded-full bg-[#FDB913]" />
             RENEVIEW
@@ -64,14 +64,14 @@ export default function LoginPage() {
           </div>
 
           <div className="relative z-10 max-w-[340px] -translate-y-6">
-            <h1 className="text-4xl leading-snug mb-4">
+            <h1 className="mb-4 text-3xl leading-snug xl:text-4xl">
               <span className="block text-white font-extrabold ">OUR TARGET.</span>
               <span className="block text-[#FDB913] font-extrabold">OUR WIN.</span>
             </h1>
             <p className="text-base font-semibold leading-relaxed text-white">
               &quot;Every action counts. Every conversation matters. Every submission brings us closer to our dreams.&quot;
             </p>
-            <p className="mt-4 text-3xl font-semibold italic text-[#FDB913]">
+            <p className="mt-4 text-2xl font-semibold italic text-[#FDB913] xl:text-3xl">
               Let&apos;s do this, Team!
             </p>
           </div>
@@ -86,15 +86,15 @@ export default function LoginPage() {
         </div>
 
    
-        <div className="p-9 md:min-h-[560px] md:p-12 flex flex-col justify-start">
+        <div className="flex flex-col justify-start p-6 sm:p-8 lg:min-h-[560px] lg:p-12">
        
-          <div className="flex md:hidden items-center gap-2 text-lg mb-6 text-[#0B2340]">
+          <div className="mb-6 flex items-center gap-2 text-lg text-[#0B2340] lg:hidden">
             <span className="inline-block w-[8px] h-[8px] rounded-full bg-[#FDB913]" />
             RENEVIEW
           </div>
 
-          <h1 className="text-5xl mb-2 text-[#0B2340]">Welcome!</h1>
-          <p className="text-base text-[#5B6472] mb-8">
+          <h1 className="mb-2 text-display text-[#0B2340]">Welcome!</h1>
+          <p className="mb-6 text-base text-[#5B6472] sm:mb-8">
             Sign in to continue your insurance licensing journey.
           </p>
 
@@ -124,7 +124,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <div className="flex items-baseline justify-between mb-1.5">
+              <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <label
                   htmlFor="password"
                   className="block text-sm font-semibold text-[#10151F]"
@@ -149,14 +149,14 @@ export default function LoginPage() {
                   name="password"
                   autoComplete="current-password"
                   required
-                  className="block w-full pl-10 pr-10 py-3 border border-[#E4DCC8] bg-white text-[#10151F] placeholder-[#A9A092] text-base outline-none transition focus:border-[#0B2340] focus:ring-4 focus:ring-[#0B2340]/10"
+                  className="block w-full border border-[#E4DCC8] bg-white py-3 pl-10 pr-12 text-base text-[#10151F] placeholder-[#A9A092] outline-none transition focus:border-[#0B2340] focus:ring-4 focus:ring-[#0B2340]/10"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute inset-y-0 right-3.5 flex items-center text-[#A9A092] transition hover:text-[#0B2340]"
+                  className="absolute inset-y-0 right-1 flex w-11 items-center justify-center text-[#A9A092] transition hover:text-[#0B2340]"
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -177,7 +177,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="mt-1.5 flex w-full items-center justify-center gap-2 px-4 py-3.5 text-base bg-[#FDB913] text-[#0B2340] shadow-sm transition-colors hover:bg-[#C98A00] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0B2340] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-1.5 flex min-h-12 w-full items-center justify-center gap-2 bg-[#FDB913] px-4 py-3.5 text-base text-[#0B2340] shadow-sm transition-colors hover:bg-[#C98A00] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0B2340] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? (
                 <LoaderCircle className="size-4 animate-spin" />
@@ -188,7 +188,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 text-center text-base text-[#5B6472]">
+          <div className="mt-6 text-center text-base text-[#5B6472] sm:mt-8">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-[#0B2340] font-bold hover:underline">
               Create account

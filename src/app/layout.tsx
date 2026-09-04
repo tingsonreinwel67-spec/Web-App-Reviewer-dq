@@ -28,7 +28,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+  // Never trap users at 1x — pinch-zoom is an accessibility requirement.
+  maximumScale: 5,
+  userScalable: true,
+  // Paint under notches/rounded corners so the safe-area insets resolve.
+  viewportFit: "cover",
+  colorScheme: "light",
   themeColor: "#003b5c",
 };
 

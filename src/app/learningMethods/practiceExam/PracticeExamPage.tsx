@@ -12,7 +12,7 @@ const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
       {children}
     </section>
   );
@@ -151,7 +151,7 @@ function PracticeExamContent() {
 
   if (locked) {
     return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
         <Card>
           <h1 className="text-xl font-bold">Not quite ready yet</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -160,7 +160,7 @@ function PracticeExamContent() {
           </p>
           <button
             onClick={() => window.history.back()}
-            className="mt-4 rounded-xl border border-border px-4 py-2 text-sm font-semibold"
+            className="mt-4 min-h-11 rounded-xl border border-border px-4 py-2 text-sm font-semibold"
           >
             Back
           </button>
@@ -171,7 +171,7 @@ function PracticeExamContent() {
 
   if (loading)
     return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
         <Card>
           <p className="text-sm text-muted-foreground">
             Loading practice questions...
@@ -181,7 +181,7 @@ function PracticeExamContent() {
     );
   if (finished)
     return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10">
+      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 sm:gap-5">
         <Result
           correct={score}
           wrong={wrongQuestions.length}
@@ -192,7 +192,7 @@ function PracticeExamContent() {
           <p className="font-mono text-xs uppercase text-primary">
             {examLabels[type]} - Results
           </p>
-          <h1 className="mt-3 text-3xl font-bold">
+          <h1 className="mt-3 text-display-sm font-bold">
             {score} / {questions.length} correct
           </h1>
         </Card>
@@ -209,22 +209,22 @@ function PracticeExamContent() {
     );
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10">
+    <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 sm:gap-5">
       <div className="flex items-center justify-between">
         <button
           onClick={() => window.history.back()}
-          className="text-sm text-muted-foreground"
+          className="-ml-1 min-h-11 px-1 text-sm text-muted-foreground"
         >
           Back
         </button>
         <button
           onClick={scramble}
-          className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
+          className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
         >
           <Shuffle className="size-3.5" /> Scramble
         </button>
       </div>
-      <h1 className="text-3xl font-bold">{examLabels[type]} Practice Exam</h1>
+      <h1 className="text-display-sm font-bold">{examLabels[type]} Practice Exam</h1>
       {questions.map((question, index) => (
         <Card key={`${question.id}-${index}`}>
           <p className="font-mono text-xs text-primary">Question {index + 1}</p>
@@ -239,12 +239,12 @@ function PracticeExamContent() {
                     [question.id]: choice.id,
                   }))
                 }
-                className={`rounded-2xl border p-4 text-left ${answers[question.id] === choice.id ? "border-primary bg-primary/10" : "border-border"}`}
+                className={`flex min-h-12 w-full items-start gap-3 rounded-2xl border p-4 text-left ${answers[question.id] === choice.id ? "border-primary bg-primary/10" : "border-border"}`}
               >
-                <span className="mr-3 font-mono text-xs">
+                <span className="shrink-0 pt-0.5 font-mono text-xs">
                   {String.fromCharCode(65 + choiceIndex)}
                 </span>
-                {choice.text}
+                <span className="min-w-0 flex-1">{choice.text}</span>
               </button>
             ))}
           </div>
@@ -253,7 +253,7 @@ function PracticeExamContent() {
       <button
         onClick={submit}
         disabled={submitting}
-        className="sticky bottom-4 rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground disabled:opacity-60"
+        className="bottom-safe sticky min-h-12 w-full rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground shadow-lg disabled:opacity-60"
       >
         {submitting ? "Submitting..." : "Done - Finish Exam"}
       </button>
@@ -271,7 +271,7 @@ export function PracticeExamPage() {
 
 function PracticeExamLoading() {
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+    <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
       <Card>
         <p className="text-sm text-muted-foreground">
           Loading practice questions...
