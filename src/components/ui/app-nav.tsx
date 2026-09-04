@@ -6,10 +6,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+// Flashcards and Memorize are reached through a track on the dashboard, so
+// they are deliberately not top-level links — a nav entry here would have had
+// to guess a track.
 const links = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/learningMethods/flashCard", label: "Flashcards" },
-  { href: "/learningMethods/memorization", label: "Memorize" },
   { href: "/glossary", label: "Glossary" },
   { href: "/analytics", label: "Analytics" },
 ];

@@ -3,14 +3,15 @@
 import { AppNav } from "@/components/ui/app-nav";
 import type { Eligibility } from "@/lib/eligibility";
 import { lockReason } from "@/lib/eligibility";
-import { examTypes, type ExamType } from "@/lib/types/common";
+import { examLabels, examTypes, type ExamType } from "@/lib/types/common";
 import {
   ArrowRight,
   BookOpen,
   BrainCircuit,
+  ChevronDown,
   Layers,
-  Lock,
   LineChart,
+  Lock,
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -41,16 +42,70 @@ const emptyProgress: Record<ExamType, number> = {
   TRADITIONAL_LIFE: 0,
 };
 
+/** Small pill naming the track a card belongs to. */
+function TrackTag({ type, dark }: { type: ExamType; dark?: boolean }) {
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
+        dark ? "bg-[#FFD400] text-[#0B2340]" : "bg-[#0B2340] text-[#FFD400]"
+      }`}
+    >
+      {examLabels[type]}
+    </span>
+  );
+}
+
+function ModeOption({
+  href,
+  icon: Icon,
+  title,
+  blurb,
+  remaining,
+}: {
+  href: string;
+  icon: typeof Layers;
+  title: string;
+  blurb: string;
+  remaining: number | null;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col rounded-lg border border-border bg-background p-4 transition hover:border-[#C9A227] hover:bg-[#FFF8D6]"
+    >
+      <div className="flex items-center gap-2">
+        <Icon className="size-4 text-[#0B2340]" />
+        <span className="font-extrabold">{title}</span>
+      </div>
+      <span className="mt-1.5 text-xs text-muted-foreground">{blurb}</span>
+      <span className="mt-3 flex items-center justify-between">
+        <span className="text-xs font-bold text-[#8A6D0B]">
+          {remaining === null
+            ? "Open"
+            : remaining > 0
+              ? `${remaining} left to master`
+              : "All mastered"}
+        </span>
+        <ArrowRight className="size-3.5 text-[#0B2340]" />
+      </span>
+    </Link>
+  );
+}
+
 function TrackCard({
   type,
   overall,
   eligibility,
   active,
+  expanded,
+  onToggle,
 }: {
   type: ExamType;
   overall: number;
   eligibility: Eligibility | null;
   active: boolean;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   const { title, blurb } = trackCopy[type];
   const started = overall > 0;
@@ -59,10 +114,17 @@ function TrackCard({
     ? lockReason(eligibility.flashcards, eligibility.memorization)
     : "Checking your progress…";
 
+  const flashcardsLeft = eligibility
+    ? eligibility.flashcards.total - eligibility.flashcards.mastered
+    : null;
+  const memorizeLeft = eligibility
+    ? eligibility.memorization.total - eligibility.memorization.mastered
+    : null;
+
   return (
     <section className="rv-card p-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           {active && (
             <span className="rounded bg-[#FFD400] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#0B2340]">
               Active
@@ -95,16 +157,20 @@ function TrackCard({
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <Link
-          href={`/learningMethods/flashCard?exam_type=${type}`}
-          className={`rounded-lg px-4 py-2.5 text-sm font-bold transition ${
+        <button
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className={`flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-bold transition ${
             active
               ? "bg-[#FFD400] text-[#0B2340] hover:bg-[#E8C200]"
               : "border border-border bg-muted text-foreground hover:bg-[#e9e2d2]"
           }`}
         >
           {started ? "Resume Study" : "Start Track"}
-        </Link>
+          <ChevronDown
+            className={`size-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+        </button>
 
         {locked ? (
           <span
@@ -125,6 +191,30 @@ function TrackCard({
         )}
       </div>
 
+      {expanded && (
+        <div className="rv-pop-in mt-4 border-t border-border pt-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            Choose a study mode for {examLabels[type]}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <ModeOption
+              href={`/learningMethods/flashCard?exam_type=${type}`}
+              icon={Layers}
+              title="Flashcards"
+              blurb="Quick recall and spaced repetition."
+              remaining={flashcardsLeft}
+            />
+            <ModeOption
+              href={`/learningMethods/memorization?exam_type=${type}`}
+              icon={BrainCircuit}
+              title="Memorize"
+              blurb="Deep recall on complex concepts."
+              remaining={memorizeLeft}
+            />
+          </div>
+        </div>
+      )}
+
       {locked && reason && (
         <p className="mt-3 flex items-start gap-1.5 text-xs text-muted-foreground">
           <Lock className="mt-0.5 size-3 shrink-0" />
@@ -135,64 +225,92 @@ function TrackCard({
   );
 }
 
-function QuickAccess({ dueToday }: { dueToday: number }) {
+function QuickAccess({
+  track,
+  flashcardsLeft,
+  memorizeLeft,
+}: {
+  track: ExamType;
+  flashcardsLeft: number | null;
+  memorizeLeft: number | null;
+}) {
   return (
     <aside>
       <h2 className="text-2xl font-extrabold">Quick Access</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Jumping into your active track, {examLabels[track]}.
+      </p>
 
       <Link
-        href="/learningMethods/flashCard"
+        href={`/learningMethods/flashCard?exam_type=${track}`}
         className="mt-5 block rounded-xl bg-[#0B2340] p-5 text-white transition hover:bg-[#0F2E4D]"
       >
-        <div className="flex items-center gap-2.5">
-          <Layers className="size-5 text-[#FFD400]" />
-          <h3 className="text-lg font-extrabold">Flashcards</h3>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Layers className="size-5 text-[#FFD400]" />
+            <h3 className="text-lg font-extrabold">Flashcards</h3>
+          </div>
+          <TrackTag type={track} dark />
         </div>
         <p className="mt-2 text-sm text-white/75">
           Quick recall and spaced repetition for key concepts.
         </p>
         <div className="mt-4 flex items-center justify-between">
           <span className="text-sm font-bold text-[#FFD400]">
-            {dueToday} due today
+            {flashcardsLeft === null
+              ? "Open deck"
+              : flashcardsLeft > 0
+                ? `${flashcardsLeft} due today`
+                : "All mastered"}
           </span>
           <ArrowRight className="size-4 text-[#FFD400]" />
         </div>
       </Link>
 
-      {[
-        {
-          href: "/learningMethods/memorization",
-          icon: BrainCircuit,
-          title: "Memorize",
-          blurb: "Deep learning pathways for complex formulas.",
-          action: "Continue Session",
-        },
-        {
-          href: "/glossary",
-          icon: BookOpen,
-          title: "Glossary",
-          blurb: "Comprehensive index of industry terms.",
-          action: "Browse A-Z",
-        },
-      ].map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className="rv-card mt-4 block p-5 transition hover:border-[#C9A227]"
-        >
+      <Link
+        href={`/learningMethods/memorization?exam_type=${track}`}
+        className="rv-card mt-4 block p-5 transition hover:border-[#C9A227]"
+      >
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <item.icon className="size-5 text-[#527087]" />
-            <h3 className="text-lg font-extrabold">{item.title}</h3>
+            <BrainCircuit className="size-5 text-[#527087]" />
+            <h3 className="text-lg font-extrabold">Memorize</h3>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">{item.blurb}</p>
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-sm font-semibold text-[#0B2340]">
-              {item.action}
-            </span>
-            <ArrowRight className="size-4 text-[#0B2340]" />
-          </div>
-        </Link>
-      ))}
+          <TrackTag type={track} />
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Deep learning pathways for complex formulas.
+        </p>
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-sm font-semibold text-[#0B2340]">
+            {memorizeLeft === null
+              ? "Continue Session"
+              : memorizeLeft > 0
+                ? `${memorizeLeft} to review`
+                : "All mastered"}
+          </span>
+          <ArrowRight className="size-4 text-[#0B2340]" />
+        </div>
+      </Link>
+
+      <Link
+        href="/glossary"
+        className="rv-card mt-4 block p-5 transition hover:border-[#C9A227]"
+      >
+        <div className="flex items-center gap-2.5">
+          <BookOpen className="size-5 text-[#527087]" />
+          <h3 className="text-lg font-extrabold">Glossary</h3>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Comprehensive index of industry terms.
+        </p>
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-sm font-semibold text-[#0B2340]">
+            Browse A-Z
+          </span>
+          <ArrowRight className="size-4 text-[#0B2340]" />
+        </div>
+      </Link>
     </aside>
   );
 }
@@ -203,6 +321,7 @@ export function DashboardPage() {
   const [eligibility, setEligibility] = useState<
     Partial<Record<ExamType, Eligibility>>
   >({});
+  const [expanded, setExpanded] = useState<ExamType | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -236,15 +355,13 @@ export function DashboardPage() {
 
   const firstName = session?.user?.name?.split(" ")[0] ?? "Scholar";
 
-  // Cards left to master across both tracks — the real "due today" number.
-  const dueToday = examTypes.reduce((total, type) => {
-    const counts = eligibility[type]?.flashcards;
-    return counts ? total + (counts.total - counts.mastered) : total;
-  }, 0);
-
   const activeTrack = examTypes.reduce((best, type) =>
     progress[type] > progress[best] ? type : best,
   );
+
+  const activeCounts = eligibility[activeTrack];
+  const remaining = (counts?: { total: number; mastered: number }) =>
+    counts ? counts.total - counts.mastered : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -269,12 +386,20 @@ export function DashboardPage() {
                   overall={progress[type]}
                   eligibility={eligibility[type] ?? null}
                   active={type === activeTrack && progress[type] > 0}
+                  expanded={expanded === type}
+                  onToggle={() =>
+                    setExpanded((current) => (current === type ? null : type))
+                  }
                 />
               ))}
             </div>
           </div>
 
-          <QuickAccess dueToday={dueToday} />
+          <QuickAccess
+            track={activeTrack}
+            flashcardsLeft={remaining(activeCounts?.flashcards)}
+            memorizeLeft={remaining(activeCounts?.memorization)}
+          />
         </div>
       </main>
     </div>
