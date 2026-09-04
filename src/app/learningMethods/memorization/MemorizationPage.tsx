@@ -9,28 +9,13 @@ import {
 } from "@/components/ui/motivation";
 import { Result } from "@/components/ui/result";
 import { motivationFor, type MotivationMessage } from "@/lib/motivation";
+import { splitStatements } from "@/lib/question-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Question } from "@/lib/types/questions";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
-
-/** Roman-numeral statement lists are split out so they read as a list. */
-function splitQuestion(text: string) {
-  const matches = [...text.matchAll(/(?:^|\s)([IVXLCDM]+\.)\s*/g)];
-  if (!matches.length) return { prompt: text, statements: [] as string[] };
-
-  const starts = matches.map(
-    (match) => (match.index ?? 0) + match[0].indexOf(match[1]),
-  );
-  return {
-    prompt: text.slice(0, starts[0]).trim(),
-    statements: starts.map((start, index) =>
-      text.slice(start, starts[index + 1]).trim(),
-    ),
-  };
-}
 
 type StreakState = { current: number; best: number };
 
@@ -100,7 +85,7 @@ function MemorizationContent() {
   const correctChoiceId = question?.choices.find(
     (choice) => choice.is_correct,
   )?.id;
-  const parts = question ? splitQuestion(question.text) : null;
+  const parts = question ? splitStatements(question.text) : null;
 
   const accuracy = answeredCount
     ? Math.round((correctCount / answeredCount) * 100)

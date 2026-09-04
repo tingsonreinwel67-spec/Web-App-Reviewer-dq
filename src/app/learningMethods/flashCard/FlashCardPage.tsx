@@ -4,6 +4,7 @@ import { AppNav } from "@/components/ui/app-nav";
 import { AnswerFeedback, Confetti, StreakBadge } from "@/components/ui/motivation";
 import { Result } from "@/components/ui/result";
 import { motivationFor, type MotivationMessage } from "@/lib/motivation";
+import { splitStatements } from "@/lib/question-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Flashcard } from "@/lib/types/flashcard";
 import { Check, HelpCircle, Shuffle, X } from "lucide-react";
@@ -83,6 +84,8 @@ function FlashCardContent() {
 
   const card = cards[index];
   const wrong = cards.filter((item) => ratings[item.id] === false);
+  const front = splitStatements(card?.front ?? "");
+  const back = splitStatements(card?.back ?? "");
 
   const resetSession = (nextCards: Flashcard[]) => {
     setCards(nextCards);
@@ -210,21 +213,54 @@ function FlashCardContent() {
                 revealed ? "[transform:rotateY(180deg)]" : ""
               }`}
             >
-              <span className="rv-card col-start-1 row-start-1 flex min-h-[300px] flex-col items-center justify-center gap-4 p-10 [backface-visibility:hidden]">
+              <span className="rv-card col-start-1 row-start-1 flex min-h-[320px] flex-col items-center justify-center gap-5 p-10 [backface-visibility:hidden]">
                 <HelpCircle className="size-7 text-[#C9A227]" />
-                <span className="block text-2xl font-extrabold leading-9">
-                  {card.front}
-                </span>
-                <span className="mt-2 block text-xs font-semibold text-muted-foreground">
+
+                {front.prompt && (
+                  <span className="block text-2xl font-extrabold leading-9">
+                    {front.prompt}
+                  </span>
+                )}
+
+                {/* Enumerated statements read as a list, not as one paragraph
+                    run together with the question. */}
+                {front.statements.length > 0 && (
+                  <span className="flex w-full flex-col gap-2.5 text-left">
+                    {front.statements.map((statement) => (
+                      <span
+                        key={statement}
+                        className="block rounded-lg bg-muted px-4 py-3 text-lg font-semibold leading-8"
+                      >
+                        {statement}
+                      </span>
+                    ))}
+                  </span>
+                )}
+
+                <span className="mt-1 block text-xs font-semibold text-muted-foreground">
                   Tap to reveal answer
                 </span>
               </span>
 
-              <span className="col-start-1 row-start-1 flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-xl bg-[#FFD400] p-10 text-[#0B2340] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                <span className="block text-2xl font-extrabold leading-9">
-                  {card.category}
-                </span>
-                <span className="block text-base leading-7">{card.back}</span>
+              <span className="col-start-1 row-start-1 flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-xl bg-[#FFD400] p-10 text-[#0B2340] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                {back.prompt && (
+                  <span className="block text-2xl font-bold leading-9">
+                    {back.prompt}
+                  </span>
+                )}
+
+                {back.statements.length > 0 && (
+                  <span className="flex w-full flex-col gap-2.5 text-left">
+                    {back.statements.map((statement) => (
+                      <span
+                        key={statement}
+                        className="block rounded-lg bg-[#0B2340]/10 px-4 py-3 text-xl font-semibold leading-8"
+                      >
+                        {statement}
+                      </span>
+                    ))}
+                  </span>
+                )}
               </span>
             </span>
           </button>
