@@ -5,6 +5,7 @@ import { AnswerFeedback, Confetti, StreakBadge } from "@/components/ui/motivatio
 import { Result } from "@/components/ui/result";
 import { motivationFor, type MotivationMessage } from "@/lib/motivation";
 import { splitStatements } from "@/lib/question-text";
+import { restoreSession, type SavedSession } from "@/lib/study-session";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Flashcard } from "@/lib/types/flashcard";
 import {
@@ -19,6 +20,17 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
 const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
+
+const sessionUrl = (type: ExamType) =>
+  `/api/flashcards/session?exam_type=${encodeURIComponent(type)}`;
+
+/** A body that is not a saved deck position (an error payload, say) resumes nothing. */
+const asSavedSession = (value: unknown): SavedSession | null =>
+  value &&
+  typeof value === "object" &&
+  Array.isArray((value as SavedSession).card_order)
+    ? (value as SavedSession)
+    : null;
 
 const trackTitles: Record<ExamType, string> = {
   VUL: "VUL Track Review",
@@ -43,6 +55,8 @@ function FlashCardContent() {
   const [message, setMessage] = useState<MotivationMessage | null>(null);
   const [celebration, setCelebration] = useState(0);
   const advanceTimer = useRef<number | null>(null);
+  /** Card the deck resumed on, so the learner sees where they left off. */
+  const [resumedAt, setResumedAt] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -54,14 +68,33 @@ function FlashCardContent() {
       fetch("/api/streaks")
         .then((response) => response.json())
         .catch(() => []),
+      fetch(sessionUrl(type))
+        .then((response) => response.json())
+        .catch(() => null),
     ])
-      .then(([items, streaks]) => {
+      .then(([items, streaks, saved]) => {
         if (!active) return;
-        setCards(shuffled(Array.isArray(items) ? items : []));
-        setIndex(0);
+
+        const deck = Array.isArray(items) ? items : [];
+        const byId = new Map(deck.map((item) => [item.id, item]));
+
+        // Deal the deck in the saved order and pick up on the saved card, so a
+        // half-finished session continues at "Card 5 of 20" instead of card 1.
+        const session = restoreSession(
+          deck.map((item) => item.id),
+          asSavedSession(saved),
+        );
+
+        setCards(
+          session.order
+            .map((id) => byId.get(id))
+            .filter((item): item is Flashcard => Boolean(item)),
+        );
+        setIndex(session.index);
         setRevealed(false);
-        setRatings({});
+        setRatings(session.ratings);
         setFinished(false);
+        setResumedAt(session.resumed ? session.index : null);
 
         const mine = Array.isArray(streaks)
           ? streaks.find(
@@ -79,6 +112,33 @@ function FlashCardContent() {
       active = false;
     };
   }, [type]);
+
+  // Every position change is written through, so the deck resumes on whatever
+  // device the learner opens next. A failed save only costs the resume point.
+  useEffect(() => {
+    if (loading || finished || cards.length === 0) return;
+
+    fetch(sessionUrl(type), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        card_order: cards.map((item) => item.id),
+        card_index: index,
+        ratings,
+      }),
+    }).catch((error) => {
+      console.error("Failed to save flashcard session:", error);
+    });
+  }, [cards, index, ratings, loading, finished, type]);
+
+  // A finished deck has nothing to resume into: the next visit starts over.
+  useEffect(() => {
+    if (!finished) return;
+
+    fetch(sessionUrl(type), { method: "DELETE" }).catch((error) => {
+      console.error("Failed to clear flashcard session:", error);
+    });
+  }, [finished, type]);
 
   useEffect(
     () => () => {
@@ -110,6 +170,7 @@ function FlashCardContent() {
     setRatings({});
     setFinished(false);
     setMessage(null);
+    setResumedAt(null);
   };
 
   const answer = async (isCorrect: boolean) => {
@@ -197,6 +258,7 @@ function FlashCardContent() {
               setCards((current) => shuffled(current));
               setIndex(0);
               setRevealed(false);
+              setResumedAt(null);
             }}
             className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-bold transition hover:border-[#C9A227]"
           >
@@ -210,6 +272,14 @@ function FlashCardContent() {
         <p className="mt-2 text-muted-foreground">
           Master core concepts with active recall.
         </p>
+
+        {/* Says where the deck picked up, so a resumed session never looks like
+            a restarted one. */}
+        {resumedAt === index && (
+          <p className="rv-pop-in mx-auto mt-4 w-fit rounded-lg border border-[#C9A227] bg-[#FFF8D6] px-4 py-2 text-sm font-bold text-[#0B2340]">
+            Resumed at card {index + 1} of {cards.length}
+          </p>
+        )}
 
         <div className="relative mt-8">
           <Confetti

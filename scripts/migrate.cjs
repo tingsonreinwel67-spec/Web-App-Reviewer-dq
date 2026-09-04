@@ -31,6 +31,23 @@ const statements = [
      last_answer_at timestamptz,
      UNIQUE (user_id, exam_type)
    )`,
+
+  // Where a learner stopped in a deck, so reopening a track resumes on the same
+  // card from any device instead of dealing a fresh deck from card 1.
+  `CREATE TABLE IF NOT EXISTS study_sessions (
+     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     exam_type  exam_type NOT NULL,
+     mode       text NOT NULL,
+     card_order jsonb NOT NULL DEFAULT '[]'::jsonb,
+     card_index integer NOT NULL DEFAULT 0,
+     ratings    jsonb NOT NULL DEFAULT '{}'::jsonb,
+     updated_at timestamptz NOT NULL DEFAULT now(),
+     UNIQUE (user_id, exam_type, mode)
+   )`,
+
+  `CREATE INDEX IF NOT EXISTS study_sessions_user_id_idx
+     ON study_sessions (user_id)`,
 ];
 
 // One example term so the Glossary renders against real data.
