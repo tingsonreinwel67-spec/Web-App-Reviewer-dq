@@ -27,7 +27,7 @@ function splitQuestion(text: string) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
       {children}
     </section>
   );
@@ -151,7 +151,7 @@ function MemorizationContent() {
 
   if (loading)
     return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
         <Card>
           <p className="text-sm text-muted-foreground">Loading questions...</p>
         </Card>
@@ -159,7 +159,7 @@ function MemorizationContent() {
     );
   if (finished)
     return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
         <Result
           correct={questions.length - wrong.length}
           wrong={wrong.length}
@@ -170,7 +170,7 @@ function MemorizationContent() {
     );
   if (!question)
     return (
-      <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
         <Card>
           <p className="text-sm text-muted-foreground">
             No questions are available for this exam right now.
@@ -180,22 +180,22 @@ function MemorizationContent() {
     );
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-5 pb-10">
+    <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 sm:gap-5">
       <div className="flex items-center justify-between">
         <button
           onClick={() => window.history.back()}
-          className="flex items-center gap-1 text-sm text-muted-foreground"
+          className="-ml-1 flex min-h-11 items-center gap-1 px-1 text-sm text-muted-foreground"
         >
           <ChevronLeft className="size-4" /> Back
         </button>
         <button
           onClick={scramble}
-          className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
+          className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
         >
           <Shuffle className="size-3.5" /> Scramble
         </button>
       </div>
-      <div className="flex justify-between">
+      <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {examLabels[type]} - Memorization
         </p>
@@ -213,7 +213,7 @@ function MemorizationContent() {
         <p className="font-mono text-xs uppercase text-primary">
           {question.category}
         </p>
-        <h1 className="mt-6 text-xl font-semibold leading-8">
+        <h1 className="mt-6 text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
           {questionParts?.prompt}
         </h1>
         {questionParts && questionParts.statements.length > 0 && (
@@ -221,7 +221,7 @@ function MemorizationContent() {
             {questionParts.statements.map((statement) => (
               <p
                 key={statement}
-                className="rounded-xl bg-muted/40 px-4 py-3 text-sm leading-6"
+                className="rounded-xl bg-muted/40 px-3 py-3 text-sm leading-6 sm:px-4"
               >
                 {statement}
               </p>
@@ -243,12 +243,12 @@ function MemorizationContent() {
                 type="button"
                 disabled={checked}
                 onClick={() => answer(choice.id)}
-                className={`rounded-xl border px-4 py-3 text-left text-sm transition-colors disabled:cursor-default ${choiceState === "correct" ? "border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : choiceState === "incorrect" ? "border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300" : "border-border hover:bg-muted"}`}
+                className={`flex min-h-12 w-full items-start gap-3 rounded-xl border px-3 py-3 text-left text-sm transition-colors disabled:cursor-default sm:px-4 ${choiceState === "correct" ? "border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : choiceState === "incorrect" ? "border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300" : "border-border hover:bg-muted"}`}
               >
-                <span className="mr-3 font-mono text-xs">
+                <span className="shrink-0 pt-0.5 font-mono text-xs">
                   {String.fromCharCode(65 + choiceIndex)}
                 </span>
-                {choice.text}
+                <span className="min-w-0 flex-1">{choice.text}</span>
               </button>
             );
           })}
@@ -277,7 +277,7 @@ export function MemorizationPage() {
 
 function MemorizationLoading() {
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10 pt-10">
+    <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
       <Card>
         <p className="text-sm text-muted-foreground">Loading questions...</p>
       </Card>

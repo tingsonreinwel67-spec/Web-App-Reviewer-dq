@@ -182,13 +182,104 @@
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Responsive foundations
+   --------------------------------------------------------------------------- */
+
+@theme {
+  /* Extra-small phones (Galaxy Fold cover screen, iPhone SE 1st gen). */
+  --breakpoint-xs: 23.75rem;
+}
+
+/* Viewport height that survives mobile browser chrome, with a vh fallback
+   for browsers without dvh (iOS < 15.4, Chrome < 108). */
+@utility min-h-screen-safe {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Page gutter: scales with the viewport and clears notches in landscape. */
+@utility app-gutter {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+
+  @media (width >= 40rem) {
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+}
+
+/* Trailing space that clears the home indicator / gesture bar. */
+@utility app-safe-bottom {
+  padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Offset for elements pinned to the bottom of the viewport. */
+@utility bottom-safe {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Fluid display heading — scales smoothly from 280px to desktop instead of
+   jumping between fixed breakpoint sizes. */
+@utility text-display {
+  font-size: clamp(1.75rem, 1.15rem + 2.9vw, 3rem);
+  line-height: 1.12;
+}
+
+@utility text-display-sm {
+  font-size: clamp(1.5rem, 1.15rem + 1.75vw, 2.25rem);
+  line-height: 1.2;
+}
+
 @layer base {
+  html {
+    /* Stop iOS from inflating text when the phone is rotated to landscape. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Hanken Grotesk', sans-serif;
-    min-width: 320px;
+    /* Long words (URLs, uninterrupted terms) wrap instead of forcing the page
+       to scroll sideways. */
+    overflow-wrap: break-word;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
+  img,
+  video,
+  canvas {
+    height: auto;
+  }
+
+  /* iOS zooms the whole page in when a focused field is under 16px. */
+  @media (width < 48rem) {
+    input,
+    select,
+    textarea {
+      font-size: max(16px, 1em);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

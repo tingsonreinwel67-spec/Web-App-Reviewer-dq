@@ -28,18 +28,18 @@ export function Progress({
 	data: ProgressState;
 }) {
 	return (
-		<main className="mx-auto flex max-w-2xl flex-col gap-5 px-5 pb-10">
-			<button onClick={back} className="text-sm text-muted-foreground">
+		<main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 sm:gap-5">
+			<button onClick={back} className="-ml-1 min-h-11 self-start px-1 text-left text-sm text-muted-foreground">
 				Back
 			</button>
-			<h1 className="text-3xl font-bold">My Progress</h1>
+			<h1 className="text-display-sm font-bold">My Progress</h1>
 			{examTypes.map((type) => (
-				<section key={type} className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-					<h2 className="text-xl font-bold">{examLabels[type]}</h2>
+				<section key={type} className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
+					<h2 className="text-lg font-bold sm:text-xl">{examLabels[type]}</h2>
 					<div className="mt-5 flex flex-col gap-4">
 						{studyModes.map((mode) => (
 							<div key={mode}>
-								<div className="mb-2 flex justify-between text-sm">
+								<div className="mb-2 flex justify-between gap-3 text-sm">
 									<span>{modeLabels[mode]}</span>
 									<strong>{data[type][mode]}%</strong>
 								</div>
