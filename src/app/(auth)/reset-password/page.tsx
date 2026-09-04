@@ -1,18 +1,25 @@
 "use client";
 
 import { AuthShell } from "@/components/ui/auth-shell";
-import { ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+} from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
 
 function ResetPasswordForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [done, setDone] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,13 +53,44 @@ function ResetPasswordForm() {
         return;
       }
 
+      setDone(true);
       setMessage(data.message);
-      setTimeout(() => router.replace("/"), 1800);
     } catch {
       setError("Could not reach the server. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (done) {
+    return (
+      <AuthShell
+        title="Password updated"
+        subtitle="Your new password is active. Use it the next time you sign in."
+      >
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+            <div>
+              <p className="font-bold text-emerald-900">
+                {message || "Your password has been reset."}
+              </p>
+              <p className="mt-1 text-sm text-emerald-800">
+                This reset link has now been used and will not work again.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href="/"
+          className="mt-6 flex w-full items-center justify-center gap-2 bg-[#FDB913] px-4 py-3.5 text-base font-semibold text-[#0B2340] shadow-sm transition-colors hover:bg-[#C98A00] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0B2340] focus-visible:ring-offset-2"
+        >
+          <ArrowRight className="size-4" />
+          Continue to sign in
+        </Link>
+      </AuthShell>
+    );
   }
 
   if (!token) {

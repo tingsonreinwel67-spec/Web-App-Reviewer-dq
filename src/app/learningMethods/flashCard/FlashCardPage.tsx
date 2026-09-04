@@ -7,7 +7,14 @@ import { motivationFor, type MotivationMessage } from "@/lib/motivation";
 import { splitStatements } from "@/lib/question-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Flashcard } from "@/lib/types/flashcard";
-import { Check, HelpCircle, Shuffle, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  HelpCircle,
+  Shuffle,
+  X,
+} from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 
@@ -86,6 +93,15 @@ function FlashCardContent() {
   const wrong = cards.filter((item) => ratings[item.id] === false);
   const front = splitStatements(card?.front ?? "");
   const back = splitStatements(card?.back ?? "");
+
+  /** Step between cards without rating the current one. */
+  const move = (step: number) => {
+    if (message) return;
+    const next = index + step;
+    if (next < 0 || next > cards.length - 1) return;
+    setIndex(next);
+    setRevealed(false);
+  };
 
   const resetSession = (nextCards: Flashcard[]) => {
     setCards(nextCards);
@@ -287,6 +303,26 @@ function FlashCardContent() {
             className="flex size-14 items-center justify-center rounded-full border-2 border-[#C9A227] text-[#8A6D0B] transition hover:bg-[#FFD400] disabled:cursor-not-allowed disabled:opacity-35"
           >
             <Check className="size-6" />
+          </button>
+        </div>
+
+        {/* Step through the deck without rating a card either way. */}
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <button
+            onClick={() => move(-1)}
+            disabled={index === 0 || Boolean(message)}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2.5 text-sm font-bold transition hover:border-[#C9A227] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="size-4" />
+            Back
+          </button>
+          <button
+            onClick={() => move(1)}
+            disabled={index === cards.length - 1 || Boolean(message)}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2.5 text-sm font-bold transition hover:border-[#C9A227] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+            <ChevronRight className="size-4" />
           </button>
         </div>
 

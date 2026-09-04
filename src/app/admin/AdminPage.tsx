@@ -1,6 +1,7 @@
 "use client";
 
 import { AppNav } from "@/components/ui/app-nav";
+import { Invite } from "@/components/ui/invite";
 import {
   readinessStatus,
   statusLabels,
@@ -11,6 +12,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Flame,
+  LoaderCircle,
+  Trash2,
   Users,
   Zap,
 } from "lucide-react";
@@ -101,10 +104,93 @@ function Meter({ value, tone }: { value: number; tone: string }) {
   );
 }
 
+/**
+ * Removing a reviewee destroys their history, so it takes a deliberate second
+ * click naming the person rather than a single trash icon.
+ */
+function RemoveReviewee({
+  reviewee,
+  onRemoved,
+}: {
+  reviewee: Reviewee;
+  onRemoved: (id: string) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function remove() {
+    setRemoving(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/admin/reviewees/${reviewee.id}`, {
+        method: "DELETE",
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setError(data.error ?? "Could not remove this reviewee.");
+        setRemoving(false);
+        return;
+      }
+
+      onRemoved(reviewee.id);
+    } catch {
+      setError("Could not reach the server.");
+      setRemoving(false);
+    }
+  }
+
+  if (confirming) {
+    return (
+      <div className="min-w-[190px]">
+        <p className="text-xs font-semibold">
+          Remove {reviewee.name} and all their progress?
+        </p>
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={remove}
+            disabled={removing}
+            className="flex items-center gap-1.5 rounded-lg bg-destructive px-2.5 py-1.5 text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-60"
+          >
+            {removing && <LoaderCircle className="size-3 animate-spin" />}
+            {removing ? "Removing…" : "Yes, remove"}
+          </button>
+          <button
+            onClick={() => setConfirming(false)}
+            disabled={removing}
+            className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold transition hover:border-[#C9A227]"
+          >
+            Cancel
+          </button>
+        </div>
+        {error && (
+          <p className="mt-1.5 text-xs font-semibold text-destructive">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setConfirming(true)}
+      aria-label={`Remove ${reviewee.name}`}
+      className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold text-muted-foreground transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+    >
+      <Trash2 className="size-3.5" />
+      Remove
+    </button>
+  );
+}
+
 export function AdminPage() {
   const [roster, setRoster] = useState<Reviewee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReadinessStatus | "ALL">(
     "ALL",
   );
@@ -167,9 +253,9 @@ export function AdminPage() {
       <AppNav />
 
       <main className="mx-auto w-full max-w-[1500px] px-6 py-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr] lg:items-start">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-extrabold">
                 Reviewee Directory &amp; Cohort Roster
               </h1>
@@ -182,7 +268,18 @@ export function AdminPage() {
               tracks.
             </p>
           </div>
+
+          <Invite />
         </div>
+
+        {notice && (
+          <p
+            role="status"
+            className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+          >
+            {notice}
+          </p>
+        )}
 
         <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryTile
@@ -296,6 +393,7 @@ export function AdminPage() {
                       "Mock Exam Avg",
                       "Streak & Activity",
                       "Status",
+                      "Actions",
                     ].map((heading) => (
                       <th
                         key={heading}
@@ -391,6 +489,18 @@ export function AdminPage() {
                         >
                           {statusLabels[row.status]}
                         </span>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <RemoveReviewee
+                          reviewee={row}
+                          onRemoved={(id) => {
+                            setRoster((current) =>
+                              current.filter((item) => item.id !== id),
+                            );
+                            setNotice(`${row.name} has been removed.`);
+                          }}
+                        />
                       </td>
                     </tr>
                   ))}
