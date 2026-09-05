@@ -18,12 +18,22 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
+
+type Recruiter = {
+  id: string;
+  name: string;
+  email: string;
+  role: "ADMIN" | "MANAGER";
+};
 
 type Reviewee = {
   id: string;
   name: string;
   email: string;
+  /** Whoever's invite link this reviewee signed up with. */
+  manager: Recruiter | null;
   readiness: number;
   status: ReadinessStatus;
   flashcards: { mastered: number; total: number };
@@ -266,6 +276,11 @@ function RemoveReviewee({
 }
 
 export function AdminPage() {
+  const { data: session } = useSession();
+  // Only an admin sees more than one recruiter's reviewees, so only an admin
+  // needs the column saying whose they are.
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const [roster, setRoster] = useState<Reviewee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -464,6 +479,7 @@ export function AdminPage() {
                   <tr>
                     {[
                       "Reviewee / Candidate",
+                      ...(isAdmin ? ["Recruited By"] : []),
                       "Overall Readiness",
                       "Flashcards Mastery",
                       "Memorize Acc.",
@@ -495,6 +511,28 @@ export function AdminPage() {
                           {row.email}
                         </p>
                       </td>
+
+                      {isAdmin && (
+                        <td className="px-5 py-4">
+                          {row.manager ? (
+                            <>
+                              <p className="font-semibold">
+                                {row.manager.name}
+                              </p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {row.manager.role === "ADMIN"
+                                  ? "Admin"
+                                  : "Manager"}{" "}
+                                · {row.manager.email}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              No recruiter on record
+                            </p>
+                          )}
+                        </td>
+                      )}
 
                       <td className="px-5 py-4">
                         <div className="flex items-baseline gap-2">
