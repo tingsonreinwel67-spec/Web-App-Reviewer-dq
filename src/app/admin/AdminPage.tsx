@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Flame,
   LoaderCircle,
+  Search,
   Trash2,
   Users,
   Zap,
@@ -289,6 +290,7 @@ export function AdminPage() {
     "ALL",
   );
   const [sort, setSort] = useState<SortKey>("readiness_desc");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -320,17 +322,29 @@ export function AdminPage() {
   );
 
   const visible = useMemo(() => {
-    const filtered =
-      statusFilter === "ALL"
-        ? roster
-        : roster.filter((row) => row.status === statusFilter);
+    const needle = search.trim().toLowerCase();
+
+    const filtered = roster.filter((row) => {
+      if (statusFilter !== "ALL" && row.status !== statusFilter) return false;
+      if (!needle) return true;
+
+      // An admin looking at everyone should be able to pull up a manager's
+      // whole intake by typing that manager's name.
+      const haystack = [
+        row.name,
+        row.email,
+        ...(isAdmin && row.manager ? [row.manager.name, row.manager.email] : []),
+      ];
+
+      return haystack.some((field) => field.toLowerCase().includes(needle));
+    });
 
     return [...filtered].sort((a, b) => {
       if (sort === "name_asc") return a.name.localeCompare(b.name);
       if (sort === "readiness_asc") return a.readiness - b.readiness;
       return b.readiness - a.readiness;
     });
-  }, [roster, statusFilter, sort]);
+  }, [roster, statusFilter, sort, search, isAdmin]);
 
   const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -456,6 +470,23 @@ export function AdminPage() {
               </button>
             ))}
           </div>
+
+          <label className="ml-auto text-xs font-bold uppercase tracking-wide text-muted-foreground">
+            {isAdmin ? "Search Reviewee or Manager" : "Search Reviewee"}
+            <div className="relative mt-1.5">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder={isAdmin ? "Name, email or manager" : "Name or email"}
+                className="w-72 rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm font-semibold text-foreground outline-none focus:border-[#0B2340]"
+              />
+            </div>
+          </label>
         </div>
 
         {loading ? (
@@ -468,7 +499,9 @@ export function AdminPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               {roster.length === 0
                 ? "No reviewees have been registered yet."
-                : "Try clearing the status filter."}
+                : search.trim()
+                  ? `Nothing matches "${search.trim()}". Try a different name or email.`
+                  : "Try clearing the status filter."}
             </p>
           </div>
         ) : (
