@@ -1,30 +1,22 @@
-// app/(wherever this route is)/reviewer-app.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { AppNav } from "@/components/ui/app-nav";
+import type { Eligibility } from "@/lib/eligibility";
+import { lockReason } from "@/lib/eligibility";
+import { examLabels, examTypes, type ExamType } from "@/lib/types/common";
 import {
   ArrowRight,
   BookOpen,
-  FileText,
-  RotateCcw,
-  Target,
+  BrainCircuit,
+  ChevronDown,
+  Layers,
+  LineChart,
+  Lock,
+  ShieldCheck,
 } from "lucide-react";
-import { examLabels, examTypes } from "@/lib/types/common";
-import type { ExamType } from "@/lib/types/common";
-import { modeLabels, studyModes } from "@/lib/types/study";
-import type { StudyMode } from "@/lib/types/study";
-import { Header } from "@/components/ui/header";
-import { Invite } from "@/components/ui/invite";
-import { Options } from "@/components/ui/options";
-import { Progress, ProgressBar } from "@/components/ui/progress";
-import type { ProgressState } from "@/components/ui/progress";
-import { Library } from "@/app/resources/library";
-
-const initialProgress: ProgressState = {
-  VUL: { flashcard: 0, memorize: 0, practice: 0 },
-  TRADITIONAL_LIFE: { flashcard: 0, memorize: 0, practice: 0 },
-};
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 type ProgressSummaryRow = {
   exam_type: ExamType;
@@ -34,186 +26,298 @@ type ProgressSummaryRow = {
   overall_pct: number;
 };
 
-function Card({ children }: { children: React.ReactNode }) {
+const trackCopy: Record<ExamType, { title: string; blurb: string }> = {
+  VUL: {
+    title: "VUL (Variable Universal Life)",
+    blurb: "Master the complexities of investment-linked insurance.",
+  },
+  TRADITIONAL_LIFE: {
+    title: "Traditional Life",
+    blurb: "Core fundamentals of whole and term life insurance.",
+  },
+};
+
+const emptyProgress: Record<ExamType, number> = {
+  VUL: 0,
+  TRADITIONAL_LIFE: 0,
+};
+
+function ModeOption({
+  href,
+  icon: Icon,
+  title,
+  blurb,
+  remaining,
+}: {
+  href: string;
+  icon: typeof Layers;
+  title: string;
+  blurb: string;
+  remaining: number | null;
+}) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
-      {children}
+    <Link
+      href={href}
+      className="flex flex-col rounded-lg border border-border bg-background p-4 transition hover:border-[#C9A227] hover:bg-[#FFF8D6]"
+    >
+      <div className="flex items-center gap-2">
+        <Icon className="size-4 text-[#0B2340]" />
+        <span className="font-extrabold">{title}</span>
+      </div>
+      <span className="mt-1.5 text-xs text-muted-foreground">{blurb}</span>
+      <span className="mt-3 flex items-center justify-between">
+        <span className="text-xs font-bold text-[#8A6D0B]">
+          {remaining === null
+            ? "Open"
+            : remaining > 0
+              ? `${remaining} left to master`
+              : "All mastered"}
+        </span>
+        <ArrowRight className="size-3.5 text-[#0B2340]" />
+      </span>
+    </Link>
+  );
+}
+
+function TrackCard({
+  type,
+  overall,
+  eligibility,
+  active,
+  expanded,
+  onToggle,
+}: {
+  type: ExamType;
+  overall: number;
+  eligibility: Eligibility | null;
+  active: boolean;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const { title, blurb } = trackCopy[type];
+  const started = overall > 0;
+  const locked = eligibility ? !eligibility.eligible : true;
+  const reason = eligibility
+    ? lockReason(eligibility.flashcards, eligibility.memorization)
+    : "Checking your progress…";
+
+  const flashcardsLeft = eligibility
+    ? eligibility.flashcards.total - eligibility.flashcards.mastered
+    : null;
+  const memorizeLeft = eligibility
+    ? eligibility.memorization.total - eligibility.memorization.mastered
+    : null;
+
+  return (
+    <section className="rv-card p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {active && (
+            <span className="rounded bg-[#FFD400] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#0B2340]">
+              Active
+            </span>
+          )}
+          <h3 className="text-lg font-extrabold">{title}</h3>
+        </div>
+        {active ? (
+          <LineChart className="size-5 shrink-0 text-[#C98A00]" />
+        ) : (
+          <ShieldCheck className="size-5 shrink-0 text-[#0B2340]" />
+        )}
+      </div>
+
+      <p className="mt-1.5 text-sm text-muted-foreground">{blurb}</p>
+
+      <div className="mt-5">
+        <div className="flex items-baseline justify-between text-xs font-bold">
+          <span>Overall Progress</span>
+          <span>{overall}%</span>
+        </div>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+          <div
+            className={`h-full rounded-full transition-[width] duration-700 ${
+              active ? "bg-[#8A6D0B]" : "bg-[#0B2340]"
+            }`}
+            style={{ width: `${overall}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <button
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className={`flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-bold transition ${
+            active
+              ? "bg-[#FFD400] text-[#0B2340] hover:bg-[#E8C200]"
+              : "border border-border bg-muted text-foreground hover:bg-[#e9e2d2]"
+          }`}
+        >
+          {started ? "Resume Study" : "Start Track"}
+          <ChevronDown
+            className={`size-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {locked ? (
+          <span
+            aria-disabled="true"
+            title={reason ?? undefined}
+            className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm font-bold text-muted-foreground"
+          >
+            <Lock className="size-3.5" />
+            Practice Exam
+          </span>
+        ) : (
+          <Link
+            href={`/learningMethods/practiceExam?exam_type=${type}`}
+            className="rounded-lg border-2 border-[#FFD400] px-4 py-2.5 text-sm font-bold text-[#0B2340] transition hover:bg-[#FFF8D6]"
+          >
+            Practice Exam
+          </Link>
+        )}
+      </div>
+
+      {expanded && (
+        <div className="rv-pop-in mt-4 border-t border-border pt-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            Choose a study mode for {examLabels[type]}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <ModeOption
+              href={`/learningMethods/flashCard?exam_type=${type}`}
+              icon={Layers}
+              title="Flashcards"
+              blurb="Quick recall and spaced repetition."
+              remaining={flashcardsLeft}
+            />
+            <ModeOption
+              href={`/learningMethods/memorization?exam_type=${type}`}
+              icon={BrainCircuit}
+              title="Memorize"
+              blurb="Deep recall on complex concepts."
+              remaining={memorizeLeft}
+            />
+          </div>
+        </div>
+      )}
+
+      {locked && reason && (
+        <p className="mt-3 flex items-start gap-1.5 text-xs text-muted-foreground">
+          <Lock className="mt-0.5 size-3 shrink-0" />
+          {reason}
+        </p>
+      )}
     </section>
   );
 }
 
-function Dashboard({
-  select,
-  progress,
-  library,
-}: {
-  select: (mode: StudyMode) => void;
-  progress: typeof initialProgress;
-  library: () => void;
-}) {
+function QuickAccess() {
   return (
-    <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 sm:gap-5">
-      <div className="pt-3">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Insurance licensing
-        </p>
-        <h1 className="mt-2 text-display-sm font-bold">Your Reviewer</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Choose a study mode and keep moving toward exam day.
-        </p>
-      </div>
-      <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold">Reviewer</h2>
-          <Target className="size-5 text-primary" />
-        </div>
-        <div className="grid grid-cols-1 gap-3 xs:grid-cols-2">
-          {examTypes.map((type, i) => {
-            const overall = Math.round(
-              Object.values(progress[type]).reduce((a, b) => a + b, 0) / 3,
-            );
-            return (
-              <div key={type} className="min-w-0 rounded-2xl bg-muted p-4">
-                <p className="font-mono text-xs uppercase text-muted-foreground">
-                  {examLabels[type]}
-                </p>
-                <p className="mt-2 text-2xl font-bold">{overall}%</p>
-                <ProgressBar value={overall} blue={i === 1} />
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-      <button
-        onClick={library}
-        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-primary/50 bg-primary/10 p-4 text-left hover:bg-primary/15"
+    <aside>
+      <h2 className="text-2xl font-extrabold">Quick Access</h2>
+
+      {/* Study modes are reached through a track above, so the glossary is the
+          only thing here that isn't track-specific. */}
+      <Link
+        href="/glossary"
+        className="mt-5 block rounded-xl bg-[#0B2340] p-5 text-white transition hover:bg-[#0F2E4D]"
       >
-        <span className="flex min-w-0 items-center gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <FileText className="size-4" />
-          </span>
-          <span className="min-w-0">
-            <span className="block font-bold">Manage reviewer content</span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              Add terms and manuals
-            </span>
-          </span>
-        </span>
-        <ArrowRight className="size-4 shrink-0 text-primary" />
-      </button>
-      <Invite />
-      <Card>
-        <h2 className="mb-4 font-bold">Study modes</h2>
-        <div className="flex flex-col gap-3">
-          {studyModes.map((mode) => (
-            <button
-              key={mode}
-              onClick={() => select(mode)}
-              className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-border px-4 py-4 text-left font-semibold hover:border-primary"
-            >
-              <span className="flex min-w-0 items-center gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted">
-                  {mode === "flashcard" ? (
-                    <BookOpen className="size-4" />
-                  ) : mode === "memorize" ? (
-                    <RotateCcw className="size-4" />
-                  ) : (
-                    <Target className="size-4" />
-                  )}
-                </span>
-                {modeLabels[mode]}
-              </span>
-              <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
-            </button>
-          ))}
+        <div className="flex items-center gap-2.5">
+          <BookOpen className="size-5 text-[#FFD400]" />
+          <h3 className="text-lg font-extrabold">Glossary</h3>
         </div>
-      </Card>
-    </main>
+        <p className="mt-2 text-sm text-white/75">
+          Comprehensive index of industry terms.
+        </p>
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-sm font-bold text-[#FFD400]">Browse A-Z</span>
+          <ArrowRight className="size-4 text-[#FFD400]" />
+        </div>
+      </Link>
+    </aside>
   );
 }
 
 export function DashboardPage() {
-  const router = useRouter();
-  const [screen, setScreen] = useState<"dashboard" | "progress" | "library">(
-    "dashboard",
-  );
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [mode, setMode] = useState<StudyMode | null>(null);
-  const [progress, setProgress] = useState(initialProgress);
+  const { data: session } = useSession();
+  const [progress, setProgress] = useState(emptyProgress);
+  const [eligibility, setEligibility] = useState<
+    Partial<Record<ExamType, Eligibility>>
+  >({});
+  const [expanded, setExpanded] = useState<ExamType | null>(null);
 
   useEffect(() => {
+    let active = true;
+
     fetch("/api/progress")
-      .then((r) => r.json())
+      .then((response) => response.json())
       .then((rows: ProgressSummaryRow[]) => {
-        const next: ProgressState = {
-          VUL: { flashcard: 0, memorize: 0, practice: 0 },
-          TRADITIONAL_LIFE: { flashcard: 0, memorize: 0, practice: 0 },
-        };
-        for (const row of rows) {
-          next[row.exam_type] = {
-            flashcard: row.flashcard_pct,
-            memorize: row.memorize_pct,
-            practice: row.practice_exam_pct,
-          };
-        }
+        if (!active || !Array.isArray(rows)) return;
+        const next = { ...emptyProgress };
+        for (const row of rows) next[row.exam_type] = row.overall_pct;
         setProgress(next);
       })
-      .catch((err) => console.error("Failed to load progress:", err));
+      .catch((error) => console.error("Failed to load progress:", error));
 
-    const savedTheme = window.localStorage.getItem("reviewer-theme") as
-      | "dark"
-      | "light"
-      | null;
-    if (savedTheme === "light" || savedTheme === "dark") setTheme(savedTheme);
+    Promise.all(
+      examTypes.map((type) =>
+        fetch(`/api/attempts/eligibility?exam_type=${type}`)
+          .then((response) => response.json())
+          .then((data: Eligibility) => [type, data] as const),
+      ),
+    )
+      .then((entries) => {
+        if (active) setEligibility(Object.fromEntries(entries));
+      })
+      .catch((error) => console.error("Failed to load eligibility:", error));
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    document.documentElement.classList.toggle("light", theme === "light");
-    window.localStorage.setItem("reviewer-theme", theme);
-  }, [theme]);
-  const home = () => {
-    setMode(null);
-    setScreen("dashboard");
-  };
-  const select = (m: StudyMode) => {
-    setMode(m);
-    setScreen("dashboard");
-  };
-  const choose = (t: ExamType) => {
-    const route =
-      mode === "practice"
-        ? "practiceExam"
-        : mode === "memorize"
-          ? "memorization"
-          : "flashCard";
-    router.push(`/learningMethods/${route}?exam_type=${encodeURIComponent(t)}`);
-  };
+  const firstName = session?.user?.name?.split(" ")[0] ?? "Scholar";
+
+  const activeTrack = examTypes.reduce((best, type) =>
+    progress[type] > progress[best] ? type : best,
+  );
+
   return (
-    <div className="min-h-screen-safe bg-background text-foreground">
-      <Header
-        home={home}
-        theme={theme}
-        toggleTheme={() =>
-          setTheme((current) => (current === "dark" ? "light" : "dark"))
-        }
-        progress={() => {
-          setMode(null);
-          setScreen("progress");
-        }}
-      />
-      {screen === "dashboard" && !mode && (
-        <Dashboard
-          select={select}
-          progress={progress}
-          library={() => setScreen("library")}
-        />
-      )}
-      {screen === "dashboard" && mode && (
-        <Options mode={mode} choose={choose} back={home} />
-      )}
-      {screen === "progress" && <Progress back={home} data={progress} />}
-      {screen === "library" && <Library back={home} />}
+    <div className="min-h-screen bg-background text-foreground">
+      <AppNav />
+
+      <main className="rv-shell py-10">
+        <h1 className="text-4xl font-extrabold md:text-5xl">
+          Welcome back, {firstName}.
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          Your certification journey is looking bright today.
+        </p>
+
+        <div className="mt-9 grid gap-8 lg:grid-cols-[1.5fr_1fr]">
+          <div>
+            <h2 className="text-2xl font-extrabold">Exam Tracks</h2>
+            <div className="mt-5 flex flex-col gap-4">
+              {examTypes.map((type) => (
+                <TrackCard
+                  key={type}
+                  type={type}
+                  overall={progress[type]}
+                  eligibility={eligibility[type] ?? null}
+                  active={type === activeTrack && progress[type] > 0}
+                  expanded={expanded === type}
+                  onToggle={() =>
+                    setExpanded((current) => (current === type ? null : type))
+                  }
+                />
+              ))}
+            </div>
+          </div>
+
+          <QuickAccess />
+        </div>
+      </main>
     </div>
   );
 }

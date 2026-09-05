@@ -1,21 +1,42 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, Shuffle, X } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { AppNav } from "@/components/ui/app-nav";
+import { AnswerFeedback, Confetti, StreakBadge } from "@/components/ui/motivation";
+import { Result } from "@/components/ui/result";
+import { motivationFor, type MotivationMessage } from "@/lib/motivation";
+import { splitStatements } from "@/lib/question-text";
+import { restoreSession, type SavedSession } from "@/lib/study-session";
+import { useFitText, type FitText } from "@/lib/use-fit-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Flashcard } from "@/lib/types/flashcard";
-import { Result } from "@/components/ui/result";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  HelpCircle,
+  Shuffle,
+  X,
+} from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 const shuffled = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
 
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
-      {children}
-    </section>
-  );
-}
+const sessionUrl = (type: ExamType) =>
+  `/api/flashcards/session?exam_type=${encodeURIComponent(type)}`;
+
+/** A body that is not a saved deck position (an error payload, say) resumes nothing. */
+const asSavedSession = (value: unknown): SavedSession | null =>
+  value &&
+  typeof value === "object" &&
+  Array.isArray((value as SavedSession).card_order)
+    ? (value as SavedSession)
+    : null;
+
+const trackTitles: Record<ExamType, string> = {
+  VUL: "VUL Track Review",
+  TRADITIONAL_LIFE: "Traditional Life Review",
+};
 
 function FlashCardContent() {
   const searchParams = useSearchParams();
@@ -23,251 +44,432 @@ function FlashCardContent() {
     searchParams.get("exam_type") === "TRADITIONAL_LIFE"
       ? "TRADITIONAL_LIFE"
       : "VUL";
+
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [ratings, setRatings] = useState<Record<string, boolean>>({});
-  const [feedback, setFeedback] = useState<"know" | "still-learning" | null>(
-    null,
-  );
   const [loading, setLoading] = useState(true);
   const [finished, setFinished] = useState(false);
+
+  const [streak, setStreak] = useState({ current: 0, best: 0 });
+  const [message, setMessage] = useState<MotivationMessage | null>(null);
+  const [celebration, setCelebration] = useState(0);
   const advanceTimer = useRef<number | null>(null);
+  /** Card the deck resumed on, so the learner sees where they left off. */
+  const [resumedAt, setResumedAt] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
-    fetch(`/api/flashcards?exam_type=${encodeURIComponent(type)}`)
-      .then((response) => response.json() as Promise<Flashcard[]>)
-      .then((items) => {
-        if (active) {
-          setCards(shuffled(items));
-          setIndex(0);
-          setRevealed(false);
-          setRatings({});
-          setFinished(false);
+
+    Promise.all([
+      fetch(`/api/flashcards?exam_type=${encodeURIComponent(type)}`).then(
+        (response) => response.json() as Promise<Flashcard[]>,
+      ),
+      fetch("/api/streaks")
+        .then((response) => response.json())
+        .catch(() => []),
+      fetch(sessionUrl(type))
+        .then((response) => response.json())
+        .catch(() => null),
+    ])
+      .then(([items, streaks, saved]) => {
+        if (!active) return;
+
+        const deck = Array.isArray(items) ? items : [];
+        const byId = new Map(deck.map((item) => [item.id, item]));
+
+        // Deal the deck in the saved order and pick up on the saved card, so a
+        // half-finished session continues at "Card 5 of 20" instead of card 1.
+        const session = restoreSession(
+          deck.map((item) => item.id),
+          asSavedSession(saved),
+        );
+
+        setCards(
+          session.order
+            .map((id) => byId.get(id))
+            .filter((item): item is Flashcard => Boolean(item)),
+        );
+        setIndex(session.index);
+        setRevealed(false);
+        setRatings(session.ratings);
+        setFinished(false);
+        setResumedAt(session.resumed ? session.index : null);
+
+        const mine = Array.isArray(streaks)
+          ? streaks.find(
+              (row: { exam_type: ExamType }) => row.exam_type === type,
+            )
+          : null;
+        if (mine) {
+          setStreak({ current: mine.current_streak, best: mine.best_streak });
         }
       })
       .catch(() => active && setCards([]))
       .finally(() => active && setLoading(false));
+
     return () => {
       active = false;
     };
   }, [type]);
 
+  // Every position change is written through, so the deck resumes on whatever
+  // device the learner opens next. A failed save only costs the resume point.
+  useEffect(() => {
+    if (loading || finished || cards.length === 0) return;
+
+    fetch(sessionUrl(type), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        card_order: cards.map((item) => item.id),
+        card_index: index,
+        ratings,
+      }),
+    }).catch((error) => {
+      console.error("Failed to save flashcard session:", error);
+    });
+  }, [cards, index, ratings, loading, finished, type]);
+
+  // A finished deck has nothing to resume into: the next visit starts over.
+  useEffect(() => {
+    if (!finished) return;
+
+    fetch(sessionUrl(type), { method: "DELETE" }).catch((error) => {
+      console.error("Failed to clear flashcard session:", error);
+    });
+  }, [finished, type]);
+
   useEffect(
     () => () => {
-      if (advanceTimer.current !== null)
+      if (advanceTimer.current !== null) {
         window.clearTimeout(advanceTimer.current);
+      }
     },
     [],
   );
 
   const card = cards[index];
   const wrong = cards.filter((item) => ratings[item.id] === false);
+  const front = splitStatements(card?.front ?? "");
+  const back = splitStatements(card?.back ?? "");
 
-  const scramble = () => {
-    setCards((current) => shuffled(current));
+  const frontFit = useFitText<HTMLSpanElement, HTMLSpanElement>(
+    card?.front ?? "",
+  );
+  const backFit = useFitText<HTMLSpanElement, HTMLSpanElement>(
+    card?.back ?? "",
+  );
+
+  /** Step between cards without rating the current one. */
+  const move = (step: number) => {
+    if (message) return;
+    const next = index + step;
+    if (next < 0 || next > cards.length - 1) return;
+    setIndex(next);
     setRevealed(false);
-    setFeedback(null);
   };
-  const restart = () => {
-    setCards((current) => shuffled(current));
+
+  const resetSession = (nextCards: Flashcard[]) => {
+    setCards(nextCards);
     setIndex(0);
     setRevealed(false);
     setRatings({});
-    setFeedback(null);
     setFinished(false);
+    setMessage(null);
+    setResumedAt(null);
   };
-  const redoMistakes = () => {
-    if (!wrong.length) return;
-    setCards(shuffled(wrong));
-    setIndex(0);
-    setRevealed(false);
-    setRatings({});
-    setFeedback(null);
-    setFinished(false);
-  };
-  const complete = () => {
-    setFinished(true);
-  };
-  const answer = (isCorrect: boolean) => {
-    if (!card || !revealed || feedback) return;
+
+  const answer = async (isCorrect: boolean) => {
+    if (!card || !revealed || message) return;
+
     setRatings((current) => ({ ...current, [card.id]: isCorrect }));
-    setFeedback(isCorrect ? "know" : "still-learning");
 
-    fetch(`/api/flashcards/${card.id}/progress`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mastered: isCorrect }),
-    }).catch((err) => console.error("Failed to save flashcard progress:", err));
+    const optimistic = isCorrect ? streak.current + 1 : 0;
+    setStreak((current) => ({
+      current: optimistic,
+      best: Math.max(current.best, optimistic),
+    }));
+    setMessage(motivationFor(isCorrect, optimistic, index));
+    if (isCorrect) setCelebration((run) => run + 1);
 
     advanceTimer.current = window.setTimeout(() => {
-      setFeedback(null);
-      if (index === cards.length - 1) complete();
+      setMessage(null);
+      if (index === cards.length - 1) setFinished(true);
       else {
-        setIndex(index + 1);
+        setIndex((current) => current + 1);
         setRevealed(false);
       }
-    }, 700);
+    }, 1200);
+
+    try {
+      const response = await fetch(`/api/flashcards/${card.id}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mastered: isCorrect }),
+      });
+      const data = await response.json();
+      if (data?.streak) {
+        setStreak({ current: data.streak.current, best: data.streak.best });
+      }
+    } catch (error) {
+      console.error("Failed to save flashcard progress:", error);
+    }
   };
 
-  if (loading)
+  if (loading) {
+    return <Shell type={type}>Loading flashcards…</Shell>;
+  }
+
+  if (finished) {
     return (
-      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
-        <Card>
-          <p className="text-sm text-muted-foreground">Loading flashcards...</p>
-        </Card>
-      </main>
+      <div className="min-h-screen bg-background text-foreground">
+        <AppNav />
+        <main className="rv-shell max-w-2xl py-10">
+          <Result
+            correct={cards.length - wrong.length}
+            wrong={wrong.length}
+            onTryAgain={() => resetSession(shuffled(cards))}
+            onRedoMistakes={
+              wrong.length ? () => resetSession(shuffled(wrong)) : undefined
+            }
+          />
+        </main>
+      </div>
     );
-  if (finished)
+  }
+
+  if (!card) {
     return (
-      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
-        <Result
-          correct={cards.length - wrong.length}
-          wrong={wrong.length}
-          onTryAgain={restart}
-          onRedoMistakes={redoMistakes}
-        />
-      </main>
+      <Shell type={type}>
+        No flashcards are available for this track right now.
+      </Shell>
     );
-  if (!card)
-    return (
-      <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
-        <Card>
-          <p className="text-sm text-muted-foreground">
-            No flashcards are available for this exam right now.
-          </p>
-        </Card>
-      </main>
-    );
+  }
 
   return (
-    <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 sm:gap-5">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => window.history.back()}
-          className="-ml-1 flex min-h-11 items-center gap-1 px-1 text-sm text-muted-foreground"
-        >
-          <ChevronLeft className="size-4" /> Back
-        </button>
-        <button
-          onClick={scramble}
-          className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold"
-        >
-          <Shuffle className="size-3.5" /> Scramble
-        </button>
-      </div>
-      <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {examLabels[type]} - Flashcard
-        </p>
-        <span className="text-xs text-muted-foreground">
-          {index + 1} / {cards.length}
-        </span>
-      </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-emerald-500"
-          style={{ width: `${((index + 1) / cards.length) * 100}%` }}
-        />
-      </div>
-      {feedback ? (
-        <section
-          className={`flex min-h-72 items-center justify-center rounded-2xl border p-5 shadow-sm sm:min-h-88 sm:rounded-3xl sm:p-6 ${feedback === "know" ? "border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300" : "border-rose-500 bg-rose-500/15 text-rose-600 dark:text-rose-300"}`}
-        >
-          <p className="text-3xl font-bold sm:text-4xl">
-            {feedback === "know" ? "Know" : "Still learning"}
-          </p>
-        </section>
-      ) : (
-        <button
-          type="button"
-          aria-label={revealed ? "Show front" : "Show back"}
-          onClick={() => setRevealed((current) => !current)}
-          className="w-full text-left [perspective:1000px]"
-        >
-          <span
-            className={`relative grid transition-transform duration-500 [transform-style:preserve-3d] ${revealed ? "[transform:rotateY(180deg)]" : ""}`}
-          >
-            <span className="col-start-1 row-start-1 flex min-h-72 flex-col rounded-2xl border border-border bg-card p-5 shadow-sm [backface-visibility:hidden] sm:min-h-88 sm:rounded-3xl sm:p-6">
-              <span className="font-mono text-xs uppercase text-primary">
-                {card.category}
-              </span>
-              <span className="mt-6 block text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
-                {card.front}
-              </span>
-              <span className="mt-auto pt-6 text-sm text-muted-foreground">
-                Tap card to reveal the answer
-              </span>
-            </span>
-            <span className="col-start-1 row-start-1 flex min-h-72 flex-col rounded-2xl border border-primary/30 bg-card p-5 shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)] sm:min-h-88 sm:rounded-3xl sm:p-6">
-              <span className="flex flex-1 flex-col justify-center">
-                <span className="font-mono text-center text-xs uppercase text-primary">
-                  Answer
-                </span>
-                <span className="mt-6 block text-center text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
-                  {card.back}
-                </span>
-              </span>
-              <span className="mt-auto pt-6 text-sm text-muted-foreground">
-                Tap card to return to the question
-              </span>
-            </span>
-          </span>
-        </button>
-      )}
-      <div className="flex flex-col items-center gap-4">
-        <div className="flex gap-6 sm:gap-8">
+    <div className="min-h-screen bg-background text-foreground">
+      <AppNav />
+
+      <main className="rv-shell max-w-3xl py-10 text-center">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-left">
+            <StreakBadge
+              current={streak.current}
+              best={streak.best}
+              pulse={message?.mood === "correct"}
+            />
+          </div>
           <button
-            aria-label="Still learning"
-            onClick={() => answer(false)}
-            disabled={!revealed || Boolean(feedback)}
-            className="flex size-14 items-center justify-center rounded-full border-2 border-rose-500 text-rose-500 transition-colors hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:size-16"
+            onClick={() => {
+              setCards((current) => shuffled(current));
+              setIndex(0);
+              setRevealed(false);
+              setResumedAt(null);
+            }}
+            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-bold transition hover:border-[#C9A227]"
           >
-            <X className="size-7 sm:size-8" />
-          </button>
-          <button
-            aria-label="Know"
-            onClick={() => answer(true)}
-            disabled={!revealed || Boolean(feedback)}
-            className="flex size-14 items-center justify-center rounded-full border-2 border-emerald-500 text-emerald-500 transition-colors hover:bg-emerald-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 sm:size-16"
-          >
-            <Check className="size-7 sm:size-8" />
+            <Shuffle className="size-3.5" /> Shuffle
           </button>
         </div>
 
-        <button
-          onClick={() => {
-            if (index > 0) {
-              setIndex(index - 1);
-              setRevealed(false);
-              setFeedback(null);
-            }
-          }}
-          disabled={index === 0 || Boolean(feedback)}
-          className="min-h-12 w-full rounded-xl border-2 border-border px-8 py-3 font-bold disabled:cursor-not-allowed disabled:opacity-50 xs:w-auto"
-        >
-          Previous card
-        </button>
-      </div>
-    </main>
+        <h1 className="mt-6 text-4xl font-extrabold md:text-5xl">
+          {trackTitles[type]}
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          Master core concepts with active recall.
+        </p>
+
+        {/* Says where the deck picked up, so a resumed session never looks like
+            a restarted one. */}
+        {resumedAt === index && (
+          <p className="rv-pop-in mx-auto mt-4 w-fit rounded-lg border border-[#C9A227] bg-[#FFF8D6] px-4 py-2 text-sm font-bold text-[#0B2340]">
+            Resumed at card {index + 1} of {cards.length}
+          </p>
+        )}
+
+        <div className="relative mt-8">
+          <Confetti
+            active={message?.mood === "correct"}
+            runId={celebration}
+            pieces={message?.milestone ? 34 : 20}
+          />
+
+          <button
+            type="button"
+            aria-label={revealed ? "Show question" : "Reveal answer"}
+            onClick={() => setRevealed((current) => !current)}
+            className="w-full [perspective:1200px]"
+          >
+            {/* The frame is a fixed height on every card; the text inside
+                scales itself down to fit, and scrolls if it hits the floor. */}
+            <span
+              className={`relative grid h-[24rem] transition-transform duration-500 [transform-style:preserve-3d] sm:h-[28rem] ${
+                revealed ? "[transform:rotateY(180deg)]" : ""
+              }`}
+            >
+              <span className="rv-card col-start-1 row-start-1 flex h-full flex-col items-center justify-center gap-4 overflow-hidden p-6 [backface-visibility:hidden] sm:p-10">
+                <HelpCircle className="size-7 shrink-0 text-[#C9A227]" />
+
+                <FitBox fit={frontFit}>
+                  {front.prompt && (
+                    <span className="block text-[1.5em] font-extrabold leading-[1.35]">
+                      {front.prompt}
+                    </span>
+                  )}
+
+                  {/* Enumerated statements read as a list, not as one paragraph
+                      run together with the question. */}
+                  {front.statements.length > 0 && (
+                    <span className="flex w-full flex-col gap-[0.6em] text-left">
+                      {front.statements.map((statement) => (
+                        <span
+                          key={statement}
+                          className="block rounded-lg bg-muted px-[0.9em] py-[0.65em] text-[1.125em] font-semibold leading-[1.5]"
+                        >
+                          {statement}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </FitBox>
+
+                <span className="block shrink-0 text-xs font-semibold text-muted-foreground">
+                  Tap to reveal answer
+                </span>
+              </span>
+
+              <span className="col-start-1 row-start-1 flex h-full flex-col items-center justify-center gap-4 overflow-hidden rounded-xl bg-[#FFD400] p-6 text-[#0B2340] [backface-visibility:hidden] [transform:rotateY(180deg)] sm:p-10">
+                <FitBox fit={backFit}>
+                  {back.prompt && (
+                    <span className="block text-[1.5em] font-bold leading-[1.35]">
+                      {back.prompt}
+                    </span>
+                  )}
+
+                  {back.statements.length > 0 && (
+                    <span className="flex w-full flex-col gap-[0.6em] text-left">
+                      {back.statements.map((statement) => (
+                        <span
+                          key={statement}
+                          className="block rounded-lg bg-[#0B2340]/10 px-[0.9em] py-[0.65em] text-[1.25em] font-semibold leading-[1.5]"
+                        >
+                          {statement}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </FitBox>
+              </span>
+            </span>
+          </button>
+        </div>
+
+        <div className="mt-8 flex items-center justify-center gap-8">
+          <button
+            aria-label="Still learning"
+            onClick={() => answer(false)}
+            disabled={!revealed || Boolean(message)}
+            className="flex size-14 items-center justify-center rounded-full border-2 border-rose-400 text-rose-500 transition hover:bg-rose-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <X className="size-6" />
+          </button>
+
+          <span className="text-sm font-semibold text-muted-foreground">
+            Card {index + 1} of {cards.length}
+          </span>
+
+          <button
+            aria-label="I know this"
+            onClick={() => answer(true)}
+            disabled={!revealed || Boolean(message)}
+            className="flex size-14 items-center justify-center rounded-full border-2 border-[#C9A227] text-[#8A6D0B] transition hover:bg-[#FFD400] disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <Check className="size-6" />
+          </button>
+        </div>
+
+        {/* Step through the deck without rating a card either way. */}
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <button
+            onClick={() => move(-1)}
+            disabled={index === 0 || Boolean(message)}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2.5 text-sm font-bold transition hover:border-[#C9A227] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeft className="size-4" />
+            Back
+          </button>
+          <button
+            onClick={() => move(1)}
+            disabled={index === cards.length - 1 || Boolean(message)}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-4 py-2.5 text-sm font-bold transition hover:border-[#C9A227] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Next
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+
+        {message && (
+          <div className="mx-auto mt-6 max-w-md text-left">
+            <AnswerFeedback message={message} />
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+/**
+ * Holds one card face's text. The outer span is the measured frame; the inner
+ * one carries the fitted base size that every em inside it scales from.
+ */
+function FitBox({
+  fit,
+  children,
+}: {
+  fit: FitText<HTMLSpanElement, HTMLSpanElement>;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      ref={fit.boxRef}
+      className="flex min-h-0 w-full flex-1 items-center overflow-y-auto overscroll-contain"
+    >
+      <span
+        ref={fit.contentRef}
+        style={{ fontSize: `${fit.fontSize}px` }}
+        className="flex w-full flex-col items-center gap-[0.9em]"
+      >
+        {children}
+      </span>
+    </span>
+  );
+}
+
+function Shell({
+  type,
+  children,
+}: {
+  type: ExamType;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <AppNav />
+      <main className="rv-shell max-w-3xl py-12 text-center">
+        <h1 className="text-4xl font-extrabold">{trackTitles[type]}</h1>
+        <p className="mt-4 text-sm text-muted-foreground">{children}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{examLabels[type]}</p>
+      </main>
+    </div>
   );
 }
 
 export function FlashCardPage() {
   return (
-    <Suspense fallback={<FlashCardLoading />}>
+    <Suspense fallback={<Shell type="VUL">Loading flashcards…</Shell>}>
       <FlashCardContent />
     </Suspense>
-  );
-}
-
-function FlashCardLoading() {
-  return (
-    <main className="app-gutter app-safe-bottom mx-auto flex w-full max-w-2xl flex-col gap-4 pt-8 sm:gap-5">
-      <Card>
-        <p className="text-sm text-muted-foreground">Loading flashcards...</p>
-      </Card>
-    </main>
   );
 }

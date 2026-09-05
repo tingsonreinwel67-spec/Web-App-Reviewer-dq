@@ -3,7 +3,10 @@ import pool from "@/lib/db";
 import type { Question } from "@/lib/types/questions";
 import { NextResponse } from "next/server";
 
-export async function GET({ params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

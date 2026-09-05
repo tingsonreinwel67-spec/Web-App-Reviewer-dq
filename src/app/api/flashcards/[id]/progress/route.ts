@@ -1,6 +1,7 @@
 // app/api/flashcards/[id]/progress/route.ts
 import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
+import { applyStreak } from "@/lib/streak-store";
 import { NextResponse } from "next/server";
 
 export async function POST(
@@ -26,7 +27,7 @@ export async function POST(
     }
 
     const cardCheck = await pool.query(
-      `SELECT id FROM flashcards WHERE id = $1`,
+      `SELECT id, exam_type FROM flashcards WHERE id = $1`,
       [flashcardId],
     );
 
@@ -38,18 +39,25 @@ export async function POST(
     }
 
     const result = await pool.query(
-      `INSERT INTO flashcard_progress 
+      `INSERT INTO flashcard_progress
         (user_id, flashcard_id, reviewed_at, mastered)
        VALUES ($1, $2, now(), $3)
-       ON CONFLICT (user_id, flashcard_id) 
-       DO UPDATE SET 
+       ON CONFLICT (user_id, flashcard_id)
+       DO UPDATE SET
          reviewed_at = now(),
          mastered = EXCLUDED.mastered
        RETURNING *`,
       [session.user.id, flashcardId, mastered],
     );
 
-    return NextResponse.json(result.rows[0]);
+    // Returned with the answer so the client can celebrate without a second call.
+    const streak = await applyStreak(
+      session.user.id,
+      cardCheck.rows[0].exam_type,
+      mastered,
+    );
+
+    return NextResponse.json({ ...result.rows[0], streak });
   } catch (error) {
     console.error("Error submitting flashcard review:", error);
     return NextResponse.json(

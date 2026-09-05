@@ -9,7 +9,10 @@ export const authConfig: NextAuthConfig = {
       const { pathname } = request.nextUrl;
 
       if (pathname.startsWith("/admin")) {
-        return isLoggedIn && auth.user?.role === "ADMIN";
+        // Managers see their own reports; admins see everyone. The roster API
+        // applies the same rule to the data itself.
+        const role = auth?.user?.role;
+        return isLoggedIn && (role === "ADMIN" || role === "MANAGER");
       }
 
       return isLoggedIn;

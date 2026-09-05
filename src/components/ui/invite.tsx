@@ -19,38 +19,50 @@ export function Invite() {
     setError("");
     setCopied(false);
     setIsCreating(true);
-    const response = await fetch("/api/invites", { method: "POST" });
-    const data = await response.json().catch(() => ({}));
-    setIsCreating(false);
 
-    if (!response.ok) {
-      setError(data.error ?? "Unable to create an invitation link.");
-      return;
+    try {
+      const response = await fetch("/api/invites", { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setError(data.error ?? "Unable to create an invitation link.");
+        return;
+      }
+
+      setLink(
+        `${window.location.origin}/signup?code=${encodeURIComponent(data.code)}`,
+      );
+      setExpiresAt(new Date(data.expires_at).toLocaleDateString());
+    } catch {
+      setError("Could not reach the server. Please try again.");
+    } finally {
+      setIsCreating(false);
     }
-
-    setLink(
-      `${window.location.origin}/signup?code=${encodeURIComponent(data.code)}`,
-    );
-    setExpiresAt(new Date(data.expires_at).toLocaleDateString());
   }
 
   async function copy() {
-    await navigator.clipboard.writeText(link);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      setError("Copying failed — select the link and copy it manually.");
+    }
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:rounded-3xl sm:p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-bold">Invite your team</h2>
-        <UserPlus className="size-5 text-primary" />
+    <section className="rv-card p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-extrabold">Invite a reviewee</h2>
+        <UserPlus className="size-5 text-[#C98A00]" />
       </div>
-      <p className="text-sm leading-6 text-muted-foreground">
+
+      <p className="mt-1.5 text-sm text-muted-foreground">
         Share a signup link so a new account is created under you. Each link
-        works for one signup only.
+        works for one signup only and expires after 7 days.
       </p>
+
       {link && (
-        <div className="mt-4 rounded-2xl bg-muted p-4">
+        <div className="mt-4 rounded-lg bg-muted p-4">
           <p className="break-all font-mono text-xs">{link}</p>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <span className="text-xs text-muted-foreground">
@@ -58,10 +70,10 @@ export function Invite() {
             </span>
             <button
               onClick={copy}
-              className="flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:border-primary"
+              className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold transition hover:border-[#C9A227]"
             >
               {copied ? (
-                <Check className="size-3.5 text-primary" />
+                <Check className="size-3.5 text-emerald-600" />
               ) : (
                 <Copy className="size-3.5" />
               )}
@@ -70,15 +82,17 @@ export function Invite() {
           </div>
         </div>
       )}
+
       {error && (
-        <p className="mt-4 text-sm text-red-600" role="alert">
+        <p className="mt-4 text-sm font-semibold text-destructive" role="alert">
           {error}
         </p>
       )}
+
       <button
         onClick={generate}
         disabled={isCreating}
-        className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-primary/50 bg-primary/10 px-4 py-3 text-sm font-semibold hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#FFD400] px-4 py-3 text-sm font-bold text-[#0B2340] transition hover:bg-[#E8C200] disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isCreating && <LoaderCircle className="size-4 animate-spin" />}
         {link ? "Generate a new link" : "Generate invitation link"}

@@ -8,3 +8,4 @@ CREATE TABLE registration_invites (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_registration_invites_created_by ON registration_invites(created_by);
+ 
