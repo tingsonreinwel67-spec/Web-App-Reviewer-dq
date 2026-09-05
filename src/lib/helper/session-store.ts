@@ -1,5 +1,5 @@
 import pool from "@/lib/db";
-import type { SavedSession } from "@/lib/study-session";
+import type { SavedSession } from "@/lib/helper/study-session";
 import type { StudyMode } from "@/lib/types/study";
 
 /**
@@ -24,8 +24,7 @@ export async function loadSession(
   return {
     card_order: Array.isArray(row.card_order) ? row.card_order : [],
     card_index: Number(row.card_index) || 0,
-    ratings:
-      row.ratings && typeof row.ratings === "object" ? row.ratings : {},
+    ratings: row.ratings && typeof row.ratings === "object" ? row.ratings : {},
   };
 }
 

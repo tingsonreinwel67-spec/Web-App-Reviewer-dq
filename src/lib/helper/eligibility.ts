@@ -1,13 +1,4 @@
-export type MasteryCounts = {
-  mastered: number;
-  total: number;
-};
-
-export type Eligibility = {
-  eligible: boolean;
-  flashcards: MasteryCounts;
-  memorization: MasteryCounts;
-};
+import { Eligibility, MasteryCounts } from "../types/eligibility";
 
 /** A section counts as complete only when it has content and all of it is mastered. */
 function isComplete({ mastered, total }: MasteryCounts): boolean {

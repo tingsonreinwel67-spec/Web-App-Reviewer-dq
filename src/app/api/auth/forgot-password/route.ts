@@ -1,5 +1,5 @@
 import pool from "@/lib/db";
-import { createResetToken } from "@/lib/reset-token";
+import { createResetToken } from "@/lib/helper/reset-token";
 import { forgotPasswordSchema } from "@/lib/validation/auth.validation";
 import { NextResponse } from "next/server";
 

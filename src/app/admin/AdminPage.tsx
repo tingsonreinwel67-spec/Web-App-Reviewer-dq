@@ -7,7 +7,7 @@ import {
   statusLabels,
   statusStyles,
   type ReadinessStatus,
-} from "@/lib/readiness";
+} from "@/lib/helper/readiness";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -365,9 +365,7 @@ export function AdminPage() {
         </div>
 
         {loading ? (
-          <p className="mt-8 text-sm text-muted-foreground">
-            Loading roster…
-          </p>
+          <p className="mt-8 text-sm text-muted-foreground">Loading roster…</p>
         ) : error ? (
           <p className="mt-8 text-sm font-semibold text-destructive">{error}</p>
         ) : rows.length === 0 ? (

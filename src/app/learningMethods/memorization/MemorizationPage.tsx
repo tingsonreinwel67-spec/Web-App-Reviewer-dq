@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/motivation";
 import { Result } from "@/components/ui/result";
 import { motivationFor, type MotivationMessage } from "@/lib/motivation";
-import { splitStatements } from "@/lib/question-text";
+import { splitStatements } from "@/lib/helper/question-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Question } from "@/lib/types/questions";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -407,9 +407,7 @@ function Shell({
 
 export function MemorizationPage() {
   return (
-    <Suspense
-      fallback={<Shell type="VUL">Loading questions…</Shell>}
-    >
+    <Suspense fallback={<Shell type="VUL">Loading questions…</Shell>}>
       <MemorizationContent />
     </Suspense>
   );

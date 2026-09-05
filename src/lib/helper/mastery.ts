@@ -1,5 +1,6 @@
 import pool from "@/lib/db";
-import { deriveEligibility, type Eligibility } from "@/lib/eligibility";
+import { deriveEligibility } from "@/lib/helper/eligibility";
+import { Eligibility } from "../types/eligibility";
 
 /**
  * Mastery counts for one user on one track, used by both the eligibility check

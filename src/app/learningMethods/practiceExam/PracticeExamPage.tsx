@@ -2,8 +2,8 @@
 
 import { AppNav } from "@/components/ui/app-nav";
 import { Result } from "@/components/ui/result";
-import type { Eligibility } from "@/lib/eligibility";
-import { lockReason } from "@/lib/eligibility";
+import type { Eligibility } from "@/lib/helper/eligibility";
+import { lockReason } from "@/lib/helper/eligibility";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Question } from "@/lib/types/questions";
 import { Lock, Shuffle } from "lucide-react";
@@ -202,7 +202,10 @@ function PracticeExamContent() {
               const wasRight = chosen === correctId;
 
               return (
-                <section key={`${question.id}-${index}`} className="rv-card p-5">
+                <section
+                  key={`${question.id}-${index}`}
+                  className="rv-card p-5"
+                >
                   <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                     Question {index + 1} · {wasRight ? "Correct" : "Incorrect"}
                   </p>
@@ -278,7 +281,10 @@ function PracticeExamContent() {
         </div>
 
         {error && (
-          <p role="alert" className="mt-4 text-sm font-semibold text-destructive">
+          <p
+            role="alert"
+            className="mt-4 text-sm font-semibold text-destructive"
+          >
             {error}
           </p>
         )}

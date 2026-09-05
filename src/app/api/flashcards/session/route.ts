@@ -1,6 +1,10 @@
 import { auth } from "@/lib/auth";
-import { clearSession, loadSession, saveSession } from "@/lib/session-store";
-import type { SavedSession } from "@/lib/study-session";
+import {
+  clearSession,
+  loadSession,
+  saveSession,
+} from "@/lib/helper/session-store";
+import type { SavedSession } from "@/lib/helper/study-session";
 import { examTypes, type ExamType } from "@/lib/types/common";
 import { NextResponse } from "next/server";
 
@@ -62,7 +66,9 @@ export async function GET(req: Request) {
 
   try {
     // null is a valid answer: the learner has no deck in progress.
-    return NextResponse.json(await loadSession(session.user.id, examType, MODE));
+    return NextResponse.json(
+      await loadSession(session.user.id, examType, MODE),
+    );
   } catch (error) {
     console.error("Error loading flashcard session:", error);
     return NextResponse.json(

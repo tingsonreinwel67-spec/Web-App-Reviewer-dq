@@ -1,5 +1,9 @@
 import pool from "@/lib/db";
-import { nextStreak, streakMilestone, type StreakUpdate } from "@/lib/streaks";
+import {
+  nextStreak,
+  streakMilestone,
+  type StreakUpdate,
+} from "@/lib/helper/streaks";
 
 export type StreakResult = StreakUpdate & {
   milestone: number | null;

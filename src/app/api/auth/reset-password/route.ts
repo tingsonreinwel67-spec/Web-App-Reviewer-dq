@@ -1,5 +1,5 @@
 import pool from "@/lib/db";
-import { hashResetToken, isTokenUsable } from "@/lib/reset-token";
+import { hashResetToken, isTokenUsable } from "@/lib/helper/reset-token";
 import { resetPasswordSchema } from "@/lib/validation/auth.validation";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
