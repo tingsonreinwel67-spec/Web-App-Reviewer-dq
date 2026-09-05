@@ -105,8 +105,17 @@ function Meter({ value, tone }: { value: number; tone: string }) {
   );
 }
 
-/** What the admin has to type before the delete button turns on. */
-const DELETE_PHRASE = "Delete User";
+/**
+ * What the admin has to type before the delete button turns on. Naming the
+ * person rather than a fixed word means a phrase copied from one dialog cannot
+ * confirm the removal of somebody else.
+ */
+const deletePhrase = (name: string) => `Delete ${name}`;
+
+/** Spacing and case should not stand between an admin and a deliberate delete. */
+const samePhrase = (a: string, b: string) =>
+  a.trim().replace(/\s+/g, " ").toLowerCase() ===
+  b.trim().replace(/\s+/g, " ").toLowerCase();
 
 /**
  * Removing a reviewee destroys their history, and the delete cascades from
@@ -126,7 +135,8 @@ function RemoveReviewee({
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
 
-  const confirmed = typed.trim().toLowerCase() === DELETE_PHRASE.toLowerCase();
+  const phrase = deletePhrase(reviewee.name);
+  const confirmed = samePhrase(typed, phrase);
 
   function close(next: boolean) {
     if (removing) return; // never yank the dialog out from under a request
@@ -202,7 +212,7 @@ function RemoveReviewee({
             htmlFor={`confirm-${reviewee.id}`}
             className="mt-5 block text-sm font-semibold"
           >
-            Type <span className="font-mono">{DELETE_PHRASE}</span> to confirm
+            Type <span className="font-mono">{phrase}</span> to confirm
           </label>
           <input
             id={`confirm-${reviewee.id}`}
@@ -213,7 +223,7 @@ function RemoveReviewee({
             }}
             disabled={removing}
             autoComplete="off"
-            placeholder={DELETE_PHRASE}
+            placeholder={phrase}
             className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
           />
 
