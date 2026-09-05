@@ -112,10 +112,19 @@ function Meter({ value, tone }: { value: number; tone: string }) {
  */
 const deletePhrase = (name: string) => `Delete ${name}`;
 
-/** Spacing and case should not stand between an admin and a deliberate delete. */
-const samePhrase = (a: string, b: string) =>
-  a.trim().replace(/\s+/g, " ").toLowerCase() ===
-  b.trim().replace(/\s+/g, " ").toLowerCase();
+/**
+ * Spacing, case and the quotes the label puts around the phrase should not
+ * stand between an admin and a deliberate delete.
+ */
+const tidy = (value: string) =>
+  value
+    .trim()
+    .replace(/^["'“”]+|["'“”]+$/g, "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+
+const samePhrase = (a: string, b: string) => tidy(a) === tidy(b);
 
 /**
  * Removing a reviewee destroys their history, and the delete cascades from
@@ -212,7 +221,8 @@ function RemoveReviewee({
             htmlFor={`confirm-${reviewee.id}`}
             className="mt-5 block text-sm font-semibold"
           >
-            Type <span className="font-mono">{phrase}</span> to confirm
+            Type <span className="font-mono">&quot;{phrase}&quot;</span> to
+            confirm
           </label>
           <input
             id={`confirm-${reviewee.id}`}
