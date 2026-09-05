@@ -2,7 +2,7 @@
 
 import { AppNav } from "@/components/ui/app-nav";
 import { Result } from "@/components/ui/result";
-import type { Eligibility } from "@/lib/helper/eligibility";
+import type { Eligibility } from "@/lib/types/eligibility";
 import { lockReason } from "@/lib/helper/eligibility";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Question } from "@/lib/types/questions";

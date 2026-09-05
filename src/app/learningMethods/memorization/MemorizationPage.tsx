@@ -8,10 +8,12 @@ import {
   StreakBadge,
 } from "@/components/ui/motivation";
 import { Result } from "@/components/ui/result";
-import { motivationFor, type MotivationMessage } from "@/lib/motivation";
+import { motivationFor, type MotivationMessage } from "@/lib/helper/motivation";
 import { splitStatements } from "@/lib/helper/question-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
+import type { MemorizationProgressResponse } from "@/lib/types/memo";
 import type { Question } from "@/lib/types/questions";
+import type { StreakRow } from "@/lib/types/streak";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -51,8 +53,8 @@ function MemorizationContent() {
         (response) => response.json() as Promise<Question[]>,
       ),
       fetch("/api/streaks")
-        .then((response) => response.json())
-        .catch(() => []),
+        .then((response) => response.json() as Promise<StreakRow[]>)
+        .catch((): StreakRow[] => []),
     ])
       .then(([items, streaks]) => {
         if (!active) return;
@@ -65,9 +67,7 @@ function MemorizationContent() {
         questionShownAt.current = Date.now();
 
         const mine = Array.isArray(streaks)
-          ? streaks.find(
-              (row: { exam_type: ExamType }) => row.exam_type === type,
-            )
+          ? streaks.find((row) => row.exam_type === type)
           : null;
         if (mine) {
           setStreak({ current: mine.current_streak, best: mine.best_streak });
@@ -149,8 +149,9 @@ function MemorizationContent() {
         },
       );
 
-      const data = await response.json();
-      if (data?.streak) {
+      const data =
+        (await response.json()) as Partial<MemorizationProgressResponse>;
+      if (data.streak) {
         setStreak({ current: data.streak.current, best: data.streak.best });
         setMessage(motivationFor(isCorrect, data.streak.current, index));
       }

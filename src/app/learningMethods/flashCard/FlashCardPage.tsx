@@ -12,7 +12,11 @@ import { splitStatements } from "@/lib/helper/question-text";
 import { restoreSession, type SavedSession } from "@/lib/helper/study-session";
 import { useFitText, type FitText } from "@/lib/helper/use-fit-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
-import type { Flashcard } from "@/lib/types/flashcard";
+import type {
+  Flashcard,
+  FlashcardProgressResponse,
+} from "@/lib/types/flashcard";
+import type { StreakRow } from "@/lib/types/streak";
 import {
   Check,
   ChevronLeft,
@@ -71,11 +75,11 @@ function FlashCardContent() {
         (response) => response.json() as Promise<Flashcard[]>,
       ),
       fetch("/api/streaks")
-        .then((response) => response.json())
-        .catch(() => []),
+        .then((response) => response.json() as Promise<StreakRow[]>)
+        .catch((): StreakRow[] => []),
       fetch(sessionUrl(type))
-        .then((response) => response.json())
-        .catch(() => null),
+        .then((response) => response.json() as Promise<unknown>)
+        .catch((): unknown => null),
     ])
       .then(([items, streaks, saved]) => {
         if (!active) return;
@@ -102,9 +106,7 @@ function FlashCardContent() {
         setResumedAt(session.resumed ? session.index : null);
 
         const mine = Array.isArray(streaks)
-          ? streaks.find(
-              (row: { exam_type: ExamType }) => row.exam_type === type,
-            )
+          ? streaks.find((row) => row.exam_type === type)
           : null;
         if (mine) {
           setStreak({ current: mine.current_streak, best: mine.best_streak });
@@ -213,8 +215,8 @@ function FlashCardContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mastered: isCorrect }),
       });
-      const data = await response.json();
-      if (data?.streak) {
+      const data = (await response.json()) as Partial<FlashcardProgressResponse>;
+      if (data.streak) {
         setStreak({ current: data.streak.current, best: data.streak.best });
       }
     } catch (error) {
