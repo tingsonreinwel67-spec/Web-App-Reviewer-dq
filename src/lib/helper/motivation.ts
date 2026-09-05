@@ -57,9 +57,7 @@ export function motivationFor(
 
   return {
     mood: "correct",
-    headline: milestone
-      ? milestoneMessages[milestone]
-      : pick(praise, seed),
+    headline: milestone ? milestoneMessages[milestone] : pick(praise, seed),
     milestone,
   };
 }

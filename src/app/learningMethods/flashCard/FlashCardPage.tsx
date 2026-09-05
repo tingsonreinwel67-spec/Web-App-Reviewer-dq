@@ -1,12 +1,16 @@
 "use client";
 
 import { AppNav } from "@/components/ui/app-nav";
-import { AnswerFeedback, Confetti, StreakBadge } from "@/components/ui/motivation";
+import {
+  AnswerFeedback,
+  Confetti,
+  StreakBadge,
+} from "@/components/ui/motivation";
 import { Result } from "@/components/ui/result";
-import { motivationFor, type MotivationMessage } from "@/lib/motivation";
-import { splitStatements } from "@/lib/question-text";
-import { restoreSession, type SavedSession } from "@/lib/study-session";
-import { useFitText, type FitText } from "@/lib/use-fit-text";
+import { motivationFor, MotivationMessage } from "@/lib/helper/motivation";
+import { splitStatements } from "@/lib/helper/question-text";
+import { restoreSession, type SavedSession } from "@/lib/helper/study-session";
+import { useFitText, type FitText } from "@/lib/helper/use-fit-text";
 import { examLabels, type ExamType } from "@/lib/types/common";
 import type { Flashcard } from "@/lib/types/flashcard";
 import {

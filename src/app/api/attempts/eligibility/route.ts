@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { fetchEligibility } from "@/lib/mastery";
+import { fetchEligibility } from "@/lib/helper/mastery";
 import { NextResponse } from "next/server";
 
 /**
@@ -24,9 +24,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    return NextResponse.json(
-      await fetchEligibility(session.user.id, examType),
-    );
+    return NextResponse.json(await fetchEligibility(session.user.id, examType));
   } catch (error) {
     console.error("Error checking practice exam eligibility:", error);
     return NextResponse.json(

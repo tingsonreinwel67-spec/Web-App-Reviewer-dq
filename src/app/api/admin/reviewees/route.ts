@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import pool from "@/lib/db";
-import { readinessStatus } from "@/lib/readiness";
+import { readinessStatus } from "@/lib/helper/readiness";
 import { NextResponse } from "next/server";
 
 type Counts = { total: number; mastered: number };
@@ -45,34 +45,40 @@ export async function GET() {
     const userIds = users.map((user) => user.id);
 
     // Totals are per-track content counts, independent of any user.
-    const [contentTotals, flashcards, memorization, questions, attempts, streaks] =
-      await Promise.all([
-        pool.query(
-          `SELECT
+    const [
+      contentTotals,
+      flashcards,
+      memorization,
+      questions,
+      attempts,
+      streaks,
+    ] = await Promise.all([
+      pool.query(
+        `SELECT
              (SELECT COUNT(*) FROM flashcards)    AS flashcards,
              (SELECT COUNT(*) FROM memorization)  AS memorization,
              (SELECT COUNT(*) FROM questions)     AS questions`,
-        ),
-        pool.query(
-          `SELECT user_id, COUNT(*) FILTER (WHERE mastered) AS mastered
+      ),
+      pool.query(
+        `SELECT user_id, COUNT(*) FILTER (WHERE mastered) AS mastered
            FROM flashcard_progress WHERE user_id = ANY($1) GROUP BY user_id`,
-          [userIds],
-        ),
-        pool.query(
-          `SELECT user_id,
+        [userIds],
+      ),
+      pool.query(
+        `SELECT user_id,
                   COUNT(*) FILTER (WHERE mastered)   AS mastered,
                   COUNT(*)                           AS answered,
                   COUNT(*) FILTER (WHERE is_correct) AS correct
            FROM memorization_progress WHERE user_id = ANY($1) GROUP BY user_id`,
-          [userIds],
-        ),
-        pool.query(
-          `SELECT user_id, COUNT(*) FILTER (WHERE mastered) AS mastered
+        [userIds],
+      ),
+      pool.query(
+        `SELECT user_id, COUNT(*) FILTER (WHERE mastered) AS mastered
            FROM question_progress WHERE user_id = ANY($1) GROUP BY user_id`,
-          [userIds],
-        ),
-        pool.query(
-          `SELECT user_id,
+        [userIds],
+      ),
+      pool.query(
+        `SELECT user_id,
                   COUNT(*)                       AS taken,
                   COUNT(*) FILTER (WHERE passed) AS passed,
                   AVG(CASE WHEN total_items > 0
@@ -80,17 +86,17 @@ export async function GET() {
            FROM exam_attempts
            WHERE user_id = ANY($1) AND completed_at IS NOT NULL
            GROUP BY user_id`,
-          [userIds],
-        ),
-        pool.query(
-          `SELECT user_id,
+        [userIds],
+      ),
+      pool.query(
+        `SELECT user_id,
                   MAX(current_streak) AS current_streak,
                   MAX(best_streak)    AS best_streak,
                   MAX(last_answer_at) AS last_answer_at
            FROM study_streaks WHERE user_id = ANY($1) GROUP BY user_id`,
-          [userIds],
-        ),
-      ]);
+        [userIds],
+      ),
+    ]);
 
     const totals = contentTotals.rows[0];
     const index = <T extends { user_id: string }>(rows: T[]) =>

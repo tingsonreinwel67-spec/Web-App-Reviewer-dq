@@ -1,8 +1,8 @@
 "use client";
 
 import { AppNav } from "@/components/ui/app-nav";
-import type { Eligibility } from "@/lib/eligibility";
-import { lockReason } from "@/lib/eligibility";
+import type { Eligibility } from "@/lib/helper/eligibility";
+import { lockReason } from "@/lib/helper/eligibility";
 import { examLabels, examTypes, type ExamType } from "@/lib/types/common";
 import {
   ArrowRight,
