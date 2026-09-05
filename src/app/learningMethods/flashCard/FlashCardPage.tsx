@@ -1,6 +1,7 @@
 "use client";
 
 import { AppNav } from "@/components/ui/app-nav";
+import { BackLink } from "@/components/ui/back-link";
 import {
   AnswerFeedback,
   Confetti,
@@ -233,6 +234,7 @@ function FlashCardContent() {
       <div className="min-h-screen bg-background text-foreground">
         <AppNav />
         <main className="rv-shell max-w-2xl py-10">
+          <BackLink />
           <Result
             correct={cards.length - wrong.length}
             wrong={wrong.length}
@@ -259,6 +261,7 @@ function FlashCardContent() {
       <AppNav />
 
       <main className="rv-shell max-w-3xl py-10 text-center">
+        <BackLink />
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-left">
             <StreakBadge
@@ -464,6 +467,7 @@ function Shell({
     <div className="min-h-screen bg-background text-foreground">
       <AppNav />
       <main className="rv-shell max-w-3xl py-12 text-center">
+        <BackLink />
         <h1 className="text-4xl font-extrabold">{trackTitles[type]}</h1>
         <p className="mt-4 text-sm text-muted-foreground">{children}</p>
         <p className="mt-1 text-xs text-muted-foreground">{examLabels[type]}</p>

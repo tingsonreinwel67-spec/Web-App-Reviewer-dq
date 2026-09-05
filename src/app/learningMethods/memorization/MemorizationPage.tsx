@@ -1,6 +1,7 @@
 "use client";
 
 import { AppNav } from "@/components/ui/app-nav";
+import { BackLink } from "@/components/ui/back-link";
 import {
   AnswerFeedback,
   Confetti,
@@ -188,6 +189,7 @@ function MemorizationContent() {
       <div className="min-h-screen bg-background text-foreground">
         <AppNav />
         <main className="rv-shell max-w-2xl py-10">
+          <BackLink />
           <Result
             correct={questions.length - wrong.length}
             wrong={wrong.length}
@@ -216,6 +218,7 @@ function MemorizationContent() {
       <AppNav />
 
       <main className="rv-shell py-8">
+        <BackLink />
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div>
             <span className="inline-block rounded-full bg-[#FFD400] px-3 py-1 text-xs font-bold text-[#0B2340]">
@@ -396,6 +399,7 @@ function Shell({
     <div className="min-h-screen bg-background text-foreground">
       <AppNav />
       <main className="rv-shell py-10">
+        <BackLink />
         <span className="inline-block rounded-full bg-[#FFD400] px-3 py-1 text-xs font-bold text-[#0B2340]">
           {examLabels[type]} Track
         </span>
