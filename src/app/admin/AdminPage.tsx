@@ -257,7 +257,7 @@ export function AdminPage() {
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-extrabold">
-                Reviewee Directory &amp; Cohort Roster
+                Reviewee Directory
               </h1>
               <span className="rounded-full bg-[#0B2340] px-3 py-1 text-xs font-bold text-[#FFD400]">
                 {counts.total} Candidates
